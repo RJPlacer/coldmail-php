@@ -44,15 +44,16 @@ $row = $job['recipients'][$job['index']];
 $toAddr = $row['email'] ?? '';
 
 $subject = render_merge_tags($job['subject'], $row);
-$bodyText = render_merge_tags($job['body'], $row);
+$mainBodyText = render_merge_tags($job['body'], $row);
+$footerText = '';
 if (!empty($job['unsubscribe_line'])) {
     $senderFields = [
         'smtp_user' => $job['smtp_user'],
         'from_name' => $job['from_name'] ?? '',
     ];
-    $bodyText .= "\n\n" . render_merge_tags($job['unsubscribe_line'], array_merge($senderFields, $row));
+    $footerText = render_merge_tags($job['unsubscribe_line'], array_merge($senderFields, $row));
 }
-$bodyHtml = nl2br(htmlspecialchars($bodyText));
+$bodyText = $mainBodyText . ($footerText !== '' ? "\n\n" . $footerText : '');
 
 $entry = [
     'email' => $toAddr,
@@ -66,7 +67,7 @@ try {
     if ($job['dry_run']) {
         $entry['status'] = 'dry-run-ok';
     } else {
-        send_single_email($job, $toAddr, $subject, $bodyHtml, $bodyText);
+        send_single_email($job, $toAddr, $subject, $mainBodyText, $footerText, $bodyText);
         $entry['status'] = 'sent';
     }
     $job['sent'] += 1;
@@ -88,7 +89,7 @@ json_response(summarize($job));
 
 // --- helpers local to this endpoint ---
 
-function send_single_email(array $job, string $toAddr, string $subject, string $bodyHtml, string $bodyText): void {
+function send_single_email(array $job, string $toAddr, string $subject, string $mainBodyText, string $footerText, string $plainTextBody): void {
     $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
     $mail->isSMTP();
     $mail->Host = $job['smtp_host'];
@@ -104,10 +105,66 @@ function send_single_email(array $job, string $toAddr, string $subject, string $
     $mail->addAddress($toAddr);
     $mail->isHTML(true);
     $mail->Subject = $subject;
-    $mail->Body = $bodyHtml;
-    $mail->AltBody = $bodyText;
+
+    // Embed the logo directly in the email (not linked from a URL) so it
+    // displays correctly for recipients no matter where the app is hosted.
+    $logoCid = 'alfadevslogo';
+    $logoPath = dirname(__DIR__) . '/static/logo.png';
+    $hasLogo = file_exists($logoPath);
+    if ($hasLogo) {
+        $mail->addEmbeddedImage($logoPath, $logoCid, 'logo.png');
+    }
+
+    $mail->Body = build_branded_email_html($mainBodyText, $footerText, $hasLogo ? $logoCid : null);
+    $mail->AltBody = $plainTextBody;
 
     $mail->send();
+}
+
+/**
+ * Wrap the message body in a simple, email-client-safe branded template.
+ * Uses inline styles and a table layout since most email clients strip
+ * <style> blocks and don't support modern CSS.
+ */
+function build_branded_email_html(string $mainBodyText, string $footerText, ?string $logoCid): string {
+    $mainBodyHtml = nl2br(htmlspecialchars($mainBodyText));
+    $footerHtml = $footerText !== '' ? nl2br(htmlspecialchars($footerText)) : '';
+
+    $logoBlock = $logoCid
+        ? '<img src="cid:' . $logoCid . '" alt="AlfaDevs" width="120" style="display:block;border:0;outline:none;text-decoration:none;height:auto;">'
+        : '<span style="font-size:18px;font-weight:700;color:#0c1f3d;">AlfaDevs</span>';
+
+    $footerBlock = $footerHtml !== ''
+        ? '<tr><td style="padding:18px 32px;background:#f7fafd;border-top:1px solid #dbe8f6;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#5c7089;">' . $footerHtml . '</td></tr>'
+        : '';
+
+    return <<<HTML
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0; padding:0; background-color:#eef6ff;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#eef6ff; padding:32px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 8px 24px rgba(11,63,140,0.08);">
+          <tr>
+            <td style="padding:24px 32px; border-bottom:1px solid #dbe8f6;">
+              {$logoBlock}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px; font-family:Arial,Helvetica,sans-serif; font-size:15px; line-height:1.7; color:#0c1f3d;">
+              {$mainBodyHtml}
+            </td>
+          </tr>
+          {$footerBlock}
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+HTML;
 }
 
 function write_job($fp, array $job): void {
