@@ -9,6 +9,7 @@ $username = current_username();
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dispatch — Bulk Email Sender</title>
+<link rel="icon" type="image/x-icon" href="static/favicon.ico">
 <style>
   :root {
     --ink: #0c1f3d;
