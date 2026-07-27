@@ -212,6 +212,16 @@ async function loadSettings() {
     const data = await res.json();
     if (data.settings) {
       document.getElementById('smtp_host').value = data.settings.smtp_host || '';
+      const preset = document.getElementById('preset');
+      const host = (data.settings.smtp_host || '').toLowerCase();
+
+      if (host === 'smtp.gmail.com') {
+          preset.value = 'gmail';
+      } else if (host === 'smtp.office365.com') {
+          preset.value = 'outlook';
+      } else {
+          preset.value = 'custom';
+      }
       document.getElementById('smtp_port').value = data.settings.smtp_port || 587;
       document.getElementById('use_ssl').value = data.settings.use_ssl ? 'true' : 'false';
       document.getElementById('smtp_user').value = data.settings.smtp_user || '';
