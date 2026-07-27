@@ -343,6 +343,7 @@ $username = current_username();
     header.top .right {
       width: 100%;
       flex-wrap: wrap;
+      justify-content: flex-end;
       gap: 8px;
     }
     header.top .user-chip { order: 3; width: 100%; margin-top: 2px; }
@@ -412,27 +413,27 @@ $username = current_username();
       <div class="divider"></div>
       <div class="product-name">Dispatch</div>
     </div>
-    <div class="right menu-wrap">
-    <button class="hamburger-btn" id="menu-toggle" aria-label="Open menu" aria-expanded="false">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-    </button>
-    <div class="menu-dropdown" id="menu-dropdown">
-      <a href="history.php" class="menu-item">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-        History
-      </a>
-      <a href="settings.php" class="menu-item">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        Settings
-      </a>
-      <div class="menu-divider"></div>
-      <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
-      <a href="logout.php" class="menu-item danger">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-        Log out
-      </a>
+    <div class="menu-wrap">
+      <button class="hamburger-btn" id="menu-toggle" aria-label="Open menu" aria-expanded="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <div class="menu-dropdown" id="menu-dropdown">
+        <a href="history.php" class="menu-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          History
+        </a>
+        <a href="settings.php" class="menu-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Settings
+        </a>
+        <div class="menu-divider"></div>
+        <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
+        <a href="logout.php" class="menu-item danger">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          Log out
+        </a>
+      </div>
     </div>
-</div>
   </header>
   <p class="subtitle">Runs on your own server. SMTP credentials are saved once in Settings, not re-entered every time.</p>
 
@@ -521,26 +522,31 @@ bob@widgets.com,Bob,Widgets Co"></textarea>
       <strong>Saved templates</strong> — save a subject/body once, then reuse it next time instead of rewriting it.
     </div>
 
-    <div class="row" style="align-items:flex-end;">
-      <div>
-        <label>Saved templates</label>
-        <select id="saved-templates-select">
-          <option value="">— Select a saved template —</option>
-        </select>
+    <div class="saved-manager">
+      <div class="sm-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+        Saved Templates
       </div>
-      <div style="flex:0 0 auto; display:flex; gap:8px;">
-        <button class="btn secondary" onclick="loadSavedTemplate()">Load</button>
-        <button class="btn danger" onclick="deleteSavedTemplate()">Delete</button>
-      </div>
-    </div>
 
-    <div class="row" style="margin-top:12px; align-items:flex-end;">
-      <div>
-        <label>Save current message as</label>
-        <input type="text" id="save-template-name" placeholder="e.g. Warm intro v1">
+      <div class="sm-row">
+        <div>
+          <label style="margin-top:0;">Choose a saved template</label>
+          <select id="saved-templates-select"><option value="">— Select a saved template —</option></select>
+        </div>
+        <div class="sm-actions">
+          <button class="btn secondary" onclick="loadSavedTemplate()">Load</button>
+          <button class="btn danger" onclick="deleteSavedTemplate()">Delete</button>
+        </div>
       </div>
-      <div style="flex:0 0 auto;">
-        <button class="btn secondary" onclick="saveCurrentTemplate()">Save this template</button>
+
+      <div class="sm-row">
+        <div>
+          <label>Save current message as</label>
+          <input type="text" id="save-template-name" placeholder="e.g. Warm intro v1">
+        </div>
+        <div class="sm-actions">
+          <button class="btn secondary" onclick="saveCurrentTemplate()">Save this template</button>
+        </div>
       </div>
     </div>
 
@@ -670,6 +676,8 @@ async function loadSmtpConfig() {
   document.getElementById('no-smtp-banner').style.display = smtpConfig ? 'none' : 'block';
 }
 loadSmtpConfig();
+refreshSavedLists();
+refreshSavedTemplates();
 
 function goStep(n) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
