@@ -10,6 +10,7 @@ $username = current_username();
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dispatch — Bulk Email Sender</title>
 <link rel="icon" type="image/x-icon" href="static/favicon.ico">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
     --ink: #0c1f3d;
@@ -272,6 +273,10 @@ $username = current_username();
       <div class="product-name">Dispatch</div>
     </div>
     <div class="right">
+      <a href="history.php" class="logout-btn" title="Campaign History" style="display:inline-flex; align-items:center; gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        History
+      </a>
       <a href="settings.php" class="logout-btn" title="SMTP Settings" style="display:inline-flex; align-items:center; gap:6px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         Settings
@@ -328,6 +333,16 @@ $username = current_username();
       Paste CSV data below. First row must be a header row and must include an <strong>email</strong> column.
       Any other columns (e.g. <span style="font-family:var(--mono)">first_name, company</span>) can be used as merge tags in your message.
     </div>
+    <label>Upload a file (CSV or Excel)</label>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <label for="file-upload" class="btn secondary" style="cursor:pointer; margin:0;">Choose file…</label>
+      <input type="file" id="file-upload" accept=".csv,.xlsx,.xls,.txt" style="display:none;">
+      <span id="file-upload-name" style="font-size:13px; color:var(--muted);">No file chosen</span>
+    </div>
+    <div class="hint">Upload a .csv or .xlsx export straight from Sheets/Excel — it'll fill in the box below automatically.</div>
+
+    <div style="text-align:center; margin:16px 0; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:0.06em;">— or paste it directly —</div>
+
     <label>CSV Data</label>
     <textarea id="raw_recipients" rows="10" placeholder="email,first_name,company
 jane@acme.com,Jane,Acme Inc
@@ -347,6 +362,34 @@ bob@widgets.com,Bob,Widgets Co"></textarea>
   <!-- STEP 3: Compose -->
   <div class="panel" id="panel-3">
     <h2>Compose Message</h2>
+
+    <div class="notice">
+      <strong>Saved templates</strong> — save a subject/body once, then reuse it next time instead of rewriting it.
+    </div>
+
+    <div class="row" style="align-items:flex-end;">
+      <div>
+        <label>Saved templates</label>
+        <select id="saved-templates-select">
+          <option value="">— Select a saved template —</option>
+        </select>
+      </div>
+      <div style="flex:0 0 auto; display:flex; gap:8px;">
+        <button class="btn secondary" onclick="loadSavedTemplate()">Load</button>
+        <button class="btn danger" onclick="deleteSavedTemplate()">Delete</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px; align-items:flex-end;">
+      <div>
+        <label>Save current message as</label>
+        <input type="text" id="save-template-name" placeholder="e.g. Warm intro v1">
+      </div>
+      <div style="flex:0 0 auto;">
+        <button class="btn secondary" onclick="saveCurrentTemplate()">Save this template</button>
+      </div>
+    </div>
+
     <label>Subject line</label>
     <input type="text" id="subject" placeholder="Quick question, {{first_name}}">
 
@@ -467,6 +510,7 @@ function goStep(n) {
   });
   if (n === 4) buildReview();
   if (n === 2) refreshSavedLists();
+  if (n === 3) refreshSavedTemplates();
 }
 
 async function refreshSavedLists() {
@@ -558,9 +602,139 @@ async function deleteSavedList() {
   }
 }
 
+async function refreshSavedTemplates() {
+  try {
+    const res = await fetch('api/list_templates.php');
+    const data = await res.json();
+    if (!res.ok) return;
+    const select = document.getElementById('saved-templates-select');
+    const current = select.value;
+    select.innerHTML = '<option value="">— Select a saved template —</option>' +
+      data.templates.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+    if (current) select.value = current;
+  } catch (e) {
+    // silent — convenience feature only
+  }
+}
+
+async function loadSavedTemplate() {
+  const name = document.getElementById('saved-templates-select').value;
+  if (!name) {
+    showError('Pick a saved template first.');
+    return;
+  }
+  try {
+    const res = await fetch('api/load_template.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Could not load template.');
+      return;
+    }
+    document.getElementById('subject').value = data.template.subject || '';
+    document.getElementById('body').value = data.template.body || '';
+    if (data.template.unsubscribe_line) {
+      document.getElementById('unsubscribe_line').value = data.template.unsubscribe_line;
+    }
+  } catch (e) {
+    showError('Error contacting server: ' + e.message);
+  }
+}
+
+async function saveCurrentTemplate() {
+  const name = document.getElementById('save-template-name').value.trim();
+  if (!name) {
+    showError('Enter a name for this template first.');
+    return;
+  }
+  const config = {
+    name,
+    subject: document.getElementById('subject').value,
+    body: document.getElementById('body').value,
+    unsubscribe_line: document.getElementById('unsubscribe_line').value,
+  };
+  try {
+    const res = await fetch('api/save_template.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(config)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Could not save template.');
+      return;
+    }
+    document.getElementById('save-template-name').value = '';
+    refreshSavedTemplates();
+  } catch (e) {
+    showError('Error contacting server: ' + e.message);
+  }
+}
+
+async function deleteSavedTemplate() {
+  const select = document.getElementById('saved-templates-select');
+  const name = select.value;
+  if (!name) {
+    showError('Pick a saved template first.');
+    return;
+  }
+  if (!confirm(`Delete saved template "${name}"? This can't be undone.`)) return;
+  try {
+    const res = await fetch('api/delete_template.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Could not delete template.');
+      return;
+    }
+    refreshSavedTemplates();
+  } catch (e) {
+    showError('Error contacting server: ' + e.message);
+  }
+}
+
 document.querySelectorAll('.steps-nav .step').forEach(s => {
   s.addEventListener('click', () => goStep(parseInt(s.dataset.step)));
 });
+
+document.getElementById('file-upload').addEventListener('change', handleFileUpload);
+
+async function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  document.getElementById('file-upload-name').textContent = file.name;
+  const name = file.name.toLowerCase();
+
+  try {
+    if (name.endsWith('.csv') || name.endsWith('.txt')) {
+      const text = await file.text();
+      document.getElementById('raw_recipients').value = text;
+      parseRecipients();
+    } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+      if (typeof XLSX === 'undefined') {
+        showError('Excel support failed to load — try a .csv file instead, or refresh the page.');
+        return;
+      }
+      const buf = await file.arrayBuffer();
+      const workbook = XLSX.read(buf, {type: 'array'});
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const csv = XLSX.utils.sheet_to_csv(firstSheet);
+      document.getElementById('raw_recipients').value = csv;
+      parseRecipients();
+    } else {
+      showError('Please upload a .csv or .xlsx file.');
+    }
+  } catch (err) {
+    showError('Could not read that file: ' + err.message);
+  }
+}
 
 async function parseRecipients() {
   const raw = document.getElementById('raw_recipients').value;

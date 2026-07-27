@@ -52,8 +52,12 @@ First time only: click the **⚙ Settings** link in the header and save your SMT
 After that, the main flow is 3 steps: **Recipients → Compose → Send.**
 
 - **Recipients** — paste CSV (header row required, must include an `email` column), or load a previously saved list from the dropdown. You can also save the current list under a name to reuse later — saved lists are private per team member.
-- **Compose** — write your subject/body using `{{column_name}}` merge tags pulled from your CSV. A required unsubscribe/footer line is included by default — edit but don't remove it.
+- **Compose** — write your subject/body using `{{column_name}}` merge tags pulled from your CSV. A required unsubscribe/footer line is included by default — edit but don't remove it. You can also save/reuse whole message templates the same way as recipient lists.
 - **Review & Send** — always run a **Dry Run** first to check personalization and merge tags render correctly, then switch to Live Send.
+
+## Campaign history
+
+Click **History** in the header to see every campaign you've sent (or dry-run), with subject, date, recipient count, sent/failed counts, and a link to download that campaign's results log. This is private per team member and is built directly from the job files in `data/jobs/` — see the note in "Limits" below about what that means for cleanup.
 
 ## Security notes specific to this PHP version
 
@@ -78,4 +82,4 @@ Placeholder contact email (`alfadevs.team@gmail.com`) and site link live in `ind
 
 - Regular email provider sending limits still apply (Gmail ~500/day on personal accounts).
 - No CRM/dedup — make sure you're not re-uploading a list you already emailed.
-- Job files in `data/jobs/` aren't automatically cleaned up; consider a simple cron job if you send often.
+- Job files in `data/jobs/` aren't automatically cleaned up — and now that **History** reads directly from them, deleting old job files means losing that campaign from your history too. If you send a lot and want to trim old ones, keep a reasonable retention window (e.g. a cron job that only deletes files older than 90 days) rather than clearing them frequently.

@@ -3,11 +3,13 @@ data/users.json
 data/jobs/*.json
 data/lists/*.json
 data/smtp/*.json
+data/templates/*.json
 
 # Keep the folder structure tracked
 !data/jobs/.gitkeep
 !data/lists/.gitkeep
 !data/smtp/.gitkeep
+!data/templates/.gitkeep
 
 # OS
 .DS_Store

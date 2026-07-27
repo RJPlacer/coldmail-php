@@ -8,7 +8,7 @@
 function parse_recipients_csv(string $rawText): array {
     $rawText = trim($rawText);
     if ($rawText === '') {
-        return ['fieldnames' => [], 'rows' => []];
+        return ['fieldnames' => [], 'rows' => [], 'has_email_column' => false];
     }
 
     $lines = preg_split('/\r\n|\r|\n/', $rawText);
@@ -21,9 +21,19 @@ function parse_recipients_csv(string $rawText): array {
     $header = fgetcsv($handle);
     if ($header === false) {
         fclose($handle);
-        return ['fieldnames' => [], 'rows' => []];
+        return ['fieldnames' => [], 'rows' => [], 'has_email_column' => false];
     }
     $header = array_map('trim', $header);
+
+    // Find whichever column case-insensitively matches "email" (so Email,
+    // EMAIL, etc. all work) and normalize it to the literal key 'email'.
+    $emailColIndex = null;
+    foreach ($header as $i => $h) {
+        if (strtolower($h) === 'email') {
+            $emailColIndex = $i;
+            break;
+        }
+    }
 
     $rows = [];
     while (($data = fgetcsv($handle)) !== false) {
@@ -34,13 +44,19 @@ function parse_recipients_csv(string $rawText): array {
         foreach ($header as $i => $key) {
             $row[$key] = isset($data[$i]) ? trim($data[$i]) : '';
         }
+        // Always expose a normalized lowercase 'email' key, regardless of
+        // the original header's casing (Email, EMAIL, etc.), without
+        // clobbering the original-cased key used for display/merge tags.
+        if ($emailColIndex !== null) {
+            $row['email'] = isset($data[$emailColIndex]) ? trim($data[$emailColIndex]) : '';
+        }
         if (!empty($row['email'])) {
             $rows[] = $row;
         }
     }
     fclose($handle);
 
-    return ['fieldnames' => $header, 'rows' => $rows];
+    return ['fieldnames' => $header, 'rows' => $rows, 'has_email_column' => $emailColIndex !== null];
 }
 
 /**
@@ -118,4 +134,52 @@ function save_smtp_settings(string $username, array $settings): void {
     $file = smtp_settings_file($username);
     file_put_contents($file, json_encode($settings, JSON_PRETTY_PRINT));
     chmod($file, 0600);
+}
+
+// --- Saved message templates (per user) ---
+
+function message_templates_file(string $username): string {
+    $dir = DATA_DIR . '/templates';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    return $dir . '/' . safe_username_slug($username) . '.json';
+}
+
+function load_message_templates(string $username): array {
+    $file = message_templates_file($username);
+    if (!file_exists($file)) {
+        return [];
+    }
+    $data = json_decode(file_get_contents($file), true);
+    return is_array($data) ? $data : [];
+}
+
+function save_message_templates(string $username, array $templates): void {
+    file_put_contents(message_templates_file($username), json_encode($templates, JSON_PRETTY_PRINT));
+}
+
+// --- Campaign history (derived from job files already on disk) ---
+
+function list_user_jobs(string $username): array {
+    $jobs = [];
+    foreach (glob(JOBS_DIR . '/*.json') as $file) {
+        $job = json_decode(file_get_contents($file), true);
+        if (!is_array($job) || ($job['owner'] ?? null) !== $username) {
+            continue;
+        }
+        $jobId = basename($file, '.json');
+        $jobs[] = [
+            'job_id' => $jobId,
+            'subject' => $job['subject'] ?? '',
+            'total' => $job['total'] ?? 0,
+            'sent' => $job['sent'] ?? 0,
+            'failed' => $job['failed'] ?? 0,
+            'status' => $job['status'] ?? 'unknown',
+            'dry_run' => !empty($job['dry_run']),
+            'created_at' => $job['created_at'] ?? '',
+        ];
+    }
+    usort($jobs, fn($a, $b) => strcmp($b['created_at'], $a['created_at']));
+    return $jobs;
 }
