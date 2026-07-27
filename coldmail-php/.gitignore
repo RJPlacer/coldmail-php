@@ -1,9 +1,0 @@
-# Sensitive / local-only data — never commit these
-data/users.json
-data/jobs/*.json
-
-# Keep the jobs folder itself tracked
-!data/jobs/.gitkeep
-
-# OS
-.DS_Store

@@ -1,8 +1,0 @@
-# Block all direct web access to this folder — it holds user credentials and job files.
-Require all denied
-
-# Fallback syntax for older Apache versions
-<IfModule !mod_authz_core.c>
-    Order deny,allow
-    Deny from all
-</IfModule>
