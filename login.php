@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: radial-gradient(circle at 20% 15%, #ffffff 0%, var(--blue-1) 35%, var(--blue-2) 100%);
     color: var(--navy);
+    padding: 16px;
   }
   .card {
     width: 100%;
@@ -93,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     border-radius: 10px;
     border: 1.5px solid #dce6f2;
     background: #f7fafd;
-    font-size: 14px;
+    font-size: 16px;
     font-family: inherit;
     color: var(--navy);
   }
@@ -131,6 +132,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     font-size: 12px;
     color: var(--muted);
     margin-top: 24px;
+  }
+
+  /* ============ Mobile responsive ============ */
+  @media (max-width: 480px) {
+    .card { padding: 28px 22px; border-radius: 16px; }
   }
 </style>
 </head>

@@ -42,6 +42,7 @@ $username = current_username();
   .panel {
     background: var(--panel); border-radius: 18px; box-shadow: 0 12px 40px rgba(11, 63, 140, 0.08);
     padding: 12px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -60,6 +61,20 @@ $username = current_username();
   .dl-link { color: var(--accent-dark); font-weight: 600; text-decoration: none; font-size: 12px; }
   .dl-link:hover { text-decoration: underline; }
   .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+
+  /* ============ Mobile responsive ============ */
+  @media (max-width: 720px) {
+    .shell { padding: 18px 14px 60px; }
+    header.top { flex-wrap: wrap; row-gap: 8px; }
+    header.top .brand-lockup img { height: 24px; }
+    header.top .product-name { font-size: 15px; }
+    h1 { font-size: 20px; }
+    .panel { padding: 8px; border-radius: 14px; }
+    table { font-size: 12px; }
+    th, td { padding: 9px 10px; }
+    .subject-cell { max-width: 200px; }
+    .empty-state { padding: 40px 14px; font-size: 13px; }
+  }
 </style>
 </head>
 <body>

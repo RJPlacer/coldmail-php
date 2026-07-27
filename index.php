@@ -212,6 +212,11 @@ $username = current_username();
     margin-bottom: 20px;
   }
   .notice.warn { border-color: var(--warn); background: #fdecec; }
+  .table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   table.preview {
     width: 100%;
     border-collapse: collapse;
@@ -261,6 +266,84 @@ $username = current_username();
   footer.app-footer a { color: var(--accent-dark); text-decoration: none; font-weight: 600; }
   footer.app-footer a:hover { text-decoration: underline; }
   footer.app-footer .contact-links { display: flex; gap: 16px; }
+
+  /* ============ Mobile responsive ============ */
+  @media (max-width: 720px) {
+    .shell { padding: 18px 14px 60px; }
+
+    /* Prevent iOS Safari from auto-zooming when an input is focused */
+    input[type=text], input[type=password], input[type=number], textarea, select {
+      font-size: 16px;
+    }
+
+    header.top {
+      flex-wrap: wrap;
+      row-gap: 10px;
+    }
+    header.top .brand-lockup { flex-wrap: wrap; }
+    header.top .brand-lockup img { height: 24px; }
+    header.top .product-name { font-size: 15px; }
+    header.top .right {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    header.top .user-chip { order: 3; width: 100%; margin-top: 2px; }
+
+    h1 { font-size: 22px; }
+    .subtitle { margin-bottom: 20px; }
+
+    .steps-nav {
+      gap: 6px;
+      font-size: 10.5px;
+    }
+    .steps-nav .step { padding: 9px 4px; }
+
+    .panel { padding: 18px; border-radius: 14px; }
+
+    .row {
+      flex-direction: column;
+      gap: 0;
+    }
+    .row > div { flex: none; }
+
+    .btn { width: 100%; text-align: center; padding: 13px 20px; }
+    .btn-row {
+      flex-direction: column-reverse;
+      gap: 10px;
+    }
+    .btn-row > div:empty { display: none; }
+
+    /* file upload row */
+    div[style*="display:flex"][style*="align-items:center"][style*="gap:12px"] {
+      flex-wrap: wrap;
+    }
+
+    .stat-grid { gap: 8px; }
+    .stat { padding: 10px; }
+    .stat .num { font-size: 20px; }
+    .stat .lbl { font-size: 9.5px; }
+
+    table.preview { font-size: 11px; }
+    table.preview th, table.preview td {
+      padding: 6px 8px;
+      max-width: 120px;
+    }
+
+    .feed { max-height: 200px; font-size: 11px; }
+
+    footer.app-footer {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 19px; }
+    .steps-nav .step { font-size: 9.5px; padding: 8px 3px; }
+    .stat .num { font-size: 17px; }
+  }
 </style>
 </head>
 <body>
@@ -334,7 +417,7 @@ $username = current_username();
       Any other columns (e.g. <span style="font-family:var(--mono)">first_name, company</span>) can be used as merge tags in your message.
     </div>
     <label>Upload a file (CSV or Excel)</label>
-    <div style="display:flex; align-items:center; gap:12px;">
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
       <label for="file-upload" class="btn secondary" style="cursor:pointer; margin:0;">Choose file…</label>
       <input type="file" id="file-upload" accept=".csv,.xlsx,.xls,.txt" style="display:none;">
       <span id="file-upload-name" style="font-size:13px; color:var(--muted);">No file chosen</span>
@@ -511,6 +594,7 @@ function goStep(n) {
   if (n === 4) buildReview();
   if (n === 2) refreshSavedLists();
   if (n === 3) refreshSavedTemplates();
+  window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 async function refreshSavedLists() {
@@ -752,11 +836,11 @@ async function parseRecipients() {
     }
     parsedCount = data.count;
     let html = `<div class="notice">Found <strong>${data.count}</strong> valid recipients. Columns: ${data.fieldnames.join(', ')}</div>`;
-    html += '<table class="preview"><tr>' + data.fieldnames.map(f => `<th>${f}</th>`).join('') + '</tr>';
+    html += '<div class="table-scroll"><table class="preview"><tr>' + data.fieldnames.map(f => `<th>${f}</th>`).join('') + '</tr>';
     data.preview.forEach(row => {
       html += '<tr>' + data.fieldnames.map(f => `<td>${(row[f]||'')}</td>`).join('') + '</tr>';
     });
-    html += '</table>';
+    html += '</table></div>';
     document.getElementById('recipients-summary').innerHTML = html;
     document.getElementById('to-step-3').disabled = data.count === 0;
   } catch (e) {
@@ -788,6 +872,7 @@ function buildReview() {
   const host = smtpConfig ? smtpConfig.smtp_host : '(not set)';
   const user = smtpConfig ? smtpConfig.smtp_user : '(not set)';
   document.getElementById('review-summary').innerHTML = `
+    <div class="table-scroll">
     <table class="preview">
       <tr><th>SMTP host</th><td>${escapeHtml(host)}</td></tr>
       <tr><th>Sending as</th><td>${escapeHtml(user)}</td></tr>
@@ -795,6 +880,7 @@ function buildReview() {
       <tr><th>Delay between sends</th><td>${delay}s</td></tr>
       <tr><th>Mode</th><td>${dryRun ? 'DRY RUN (no emails sent)' : 'LIVE SEND'}</td></tr>
     </table>
+    </div>
   `;
   const warning = document.getElementById('live-warning');
   if (!dryRun) {

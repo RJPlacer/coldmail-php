@@ -73,6 +73,26 @@ $username = current_username();
   }
   #save-status.ok { background: #e8f5ee; color: #1a7a4c; display: block; }
   #save-status.error { background: #fdecec; color: var(--warn); display: block; }
+
+  /* ============ Mobile responsive ============ */
+  @media (max-width: 720px) {
+    .shell { padding: 18px 14px 60px; }
+
+    /* Prevent iOS Safari from auto-zooming when an input is focused */
+    input[type=text], input[type=password], input[type=number], select {
+      font-size: 16px;
+    }
+
+    header.top { flex-wrap: wrap; row-gap: 8px; }
+    header.top .brand-lockup img { height: 24px; }
+    header.top .product-name { font-size: 15px; }
+    header.top .right { width: 100%; }
+    h1 { font-size: 20px; }
+    .panel { padding: 18px; border-radius: 14px; }
+    .row { flex-direction: column; gap: 0; }
+    .row > div { flex: none; }
+    .btn { width: 100%; text-align: center; padding: 13px 20px; }
+  }
 </style>
 </head>
 <body>
