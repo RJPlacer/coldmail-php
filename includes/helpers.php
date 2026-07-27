@@ -94,3 +94,28 @@ function load_recipient_lists(string $username): array {
 function save_recipient_lists(string $username, array $lists): void {
     file_put_contents(recipient_lists_file($username), json_encode($lists, JSON_PRETTY_PRINT));
 }
+
+// --- Saved SMTP settings (per user) ---
+
+function smtp_settings_file(string $username): string {
+    $dir = DATA_DIR . '/smtp';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    return $dir . '/' . safe_username_slug($username) . '.json';
+}
+
+function load_smtp_settings(string $username): ?array {
+    $file = smtp_settings_file($username);
+    if (!file_exists($file)) {
+        return null;
+    }
+    $data = json_decode(file_get_contents($file), true);
+    return is_array($data) ? $data : null;
+}
+
+function save_smtp_settings(string $username, array $settings): void {
+    $file = smtp_settings_file($username);
+    file_put_contents($file, json_encode($settings, JSON_PRETTY_PRINT));
+    chmod($file, 0600);
+}

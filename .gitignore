@@ -2,10 +2,12 @@
 data/users.json
 data/jobs/*.json
 data/lists/*.json
+data/smtp/*.json
 
 # Keep the folder structure tracked
 !data/jobs/.gitkeep
 !data/lists/.gitkeep
+!data/smtp/.gitkeep
 
 # OS
 .DS_Store

@@ -272,70 +272,29 @@ $username = current_username();
       <div class="product-name">Dispatch</div>
     </div>
     <div class="right">
+      <a href="settings.php" class="logout-btn" title="SMTP Settings" style="display:inline-flex; align-items:center; gap:6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Settings
+      </a>
       <div class="user-chip">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
       <a href="logout.php" class="logout-btn">Log out</a>
     </div>
   </header>
-  <p class="subtitle">Runs on your own server. SMTP credentials are only ever kept in a temporary job file, deleted after each send.</p>
+  <p class="subtitle">Runs on your own server. SMTP credentials are saved once in Settings, not re-entered every time.</p>
 
   <div id="error-banner"></div>
-
-  <div class="steps-nav">
-    <div class="step active" data-step="1">1 · SMTP Setup</div>
-    <div class="step" data-step="2">2 · Recipients</div>
-    <div class="step" data-step="3">3 · Compose</div>
-    <div class="step" data-step="4">4 · Send</div>
+  <div id="no-smtp-banner" class="notice warn" style="display:none;">
+    No SMTP settings saved yet. <a href="settings.php" style="color:inherit; font-weight:700;">Set them up in Settings</a> before sending.
   </div>
 
-  <!-- STEP 1: SMTP -->
-  <div class="panel active" id="panel-1">
-    <h2>SMTP Connection</h2>
-    <div class="notice">
-      Gmail and Outlook both require an <strong>app password</strong>, not your normal login password, once 2FA is on.
-      Gmail: Google Account → Security → App Passwords. Outlook: account.microsoft.com/security → App passwords.
-    </div>
-    <div class="row">
-      <div>
-        <label>Provider preset</label>
-        <select id="preset">
-          <option value="custom">Custom</option>
-          <option value="gmail">Gmail (smtp.gmail.com)</option>
-          <option value="outlook">Outlook / Office365 (smtp.office365.com)</option>
-        </select>
-      </div>
-      <div>
-        <label>SMTP Host</label>
-        <input type="text" id="smtp_host" placeholder="smtp.gmail.com">
-      </div>
-    </div>
-    <div class="row">
-      <div>
-        <label>Port</label>
-        <input type="number" id="smtp_port" value="587">
-      </div>
-      <div>
-        <label>Encryption</label>
-        <select id="use_ssl">
-          <option value="false">STARTTLS (587)</option>
-          <option value="true">SSL (465)</option>
-        </select>
-      </div>
-    </div>
-    <label>Email address (username)</label>
-    <input type="text" id="smtp_user" placeholder="you@example.com">
-    <label>App Password</label>
-    <input type="password" id="smtp_pass" placeholder="16-character app password">
-    <label>From Name (optional)</label>
-    <input type="text" id="from_name" placeholder="Jane Doe">
-
-    <div class="btn-row">
-      <div></div>
-      <button class="btn" onclick="goStep(2)">Next: Recipients →</button>
-    </div>
+  <div class="steps-nav">
+    <div class="step active" data-step="2">1 · Recipients</div>
+    <div class="step" data-step="3">2 · Compose</div>
+    <div class="step" data-step="4">3 · Send</div>
   </div>
 
   <!-- STEP 2: Recipients -->
-  <div class="panel" id="panel-2">
+  <div class="panel active" id="panel-2">
     <h2>Recipients</h2>
 
     <div class="notice">
@@ -380,7 +339,7 @@ bob@widgets.com,Bob,Widgets Co"></textarea>
     <div id="recipients-summary"></div>
 
     <div class="btn-row">
-      <button class="btn secondary" onclick="goStep(1)">← Back</button>
+      <div></div>
       <button class="btn" id="to-step-3" onclick="goStep(3)" disabled>Next: Compose →</button>
     </div>
   </div>
@@ -484,18 +443,19 @@ function showError(msg) {
   setTimeout(() => banner.style.display = 'none', 6000);
 }
 
-document.getElementById('preset').addEventListener('change', (e) => {
-  const v = e.target.value;
-  if (v === 'gmail') {
-    document.getElementById('smtp_host').value = 'smtp.gmail.com';
-    document.getElementById('smtp_port').value = 587;
-    document.getElementById('use_ssl').value = 'false';
-  } else if (v === 'outlook') {
-    document.getElementById('smtp_host').value = 'smtp.office365.com';
-    document.getElementById('smtp_port').value = 587;
-    document.getElementById('use_ssl').value = 'false';
+let smtpConfig = null; // loaded from Settings
+
+async function loadSmtpConfig() {
+  try {
+    const res = await fetch('api/get_smtp_settings.php');
+    const data = await res.json();
+    smtpConfig = data.settings || null;
+  } catch (e) {
+    smtpConfig = null;
   }
-});
+  document.getElementById('no-smtp-banner').style.display = smtpConfig ? 'none' : 'block';
+}
+loadSmtpConfig();
 
 function goStep(n) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -651,8 +611,8 @@ function escapeHtml(s) {
 function buildReview() {
   const dryRun = document.getElementById('dry_run').value === 'true';
   const delay = document.getElementById('delay_seconds').value;
-  const host = document.getElementById('smtp_host').value;
-  const user = document.getElementById('smtp_user').value;
+  const host = smtpConfig ? smtpConfig.smtp_host : '(not set)';
+  const user = smtpConfig ? smtpConfig.smtp_user : '(not set)';
   document.getElementById('review-summary').innerHTML = `
     <table class="preview">
       <tr><th>SMTP host</th><td>${escapeHtml(host)}</td></tr>
@@ -669,16 +629,21 @@ function buildReview() {
   } else {
     warning.style.display = 'none';
   }
+  document.getElementById('send-btn').disabled = !smtpConfig;
 }
 
 async function startSend() {
+  if (!smtpConfig) {
+    showError('No SMTP settings saved yet — set them up in Settings first.');
+    return;
+  }
   const config = {
-    smtp_host: document.getElementById('smtp_host').value,
-    smtp_port: document.getElementById('smtp_port').value,
-    smtp_user: document.getElementById('smtp_user').value,
-    smtp_pass: document.getElementById('smtp_pass').value,
-    use_ssl: document.getElementById('use_ssl').value === 'true',
-    from_name: document.getElementById('from_name').value,
+    smtp_host: smtpConfig.smtp_host,
+    smtp_port: smtpConfig.smtp_port,
+    smtp_user: smtpConfig.smtp_user,
+    smtp_pass: smtpConfig.smtp_pass,
+    use_ssl: !!smtpConfig.use_ssl,
+    from_name: smtpConfig.from_name,
     subject: document.getElementById('subject').value,
     body: document.getElementById('body').value,
     unsubscribe_line: document.getElementById('unsubscribe_line').value,

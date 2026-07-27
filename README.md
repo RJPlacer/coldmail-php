@@ -47,7 +47,13 @@ Same as before — if your email account has 2FA on, you need an app password, n
 
 ## 6. Using it
 
-Same 4-step flow as the Python version: SMTP setup → paste recipients (CSV with an `email` column, other columns become `{{merge_tags}}`) → compose → review & send. Always try **Dry Run** first.
+First time only: click the **⚙ Settings** link in the header and save your SMTP host, email, app password, and From Name. This is saved per team member — everyone configures their own sending account once and it's remembered from then on, no re-entering it every campaign.
+
+After that, the main flow is 3 steps: **Recipients → Compose → Send.**
+
+- **Recipients** — paste CSV (header row required, must include an `email` column), or load a previously saved list from the dropdown. You can also save the current list under a name to reuse later — saved lists are private per team member.
+- **Compose** — write your subject/body using `{{column_name}}` merge tags pulled from your CSV. A required unsubscribe/footer line is included by default — edit but don't remove it.
+- **Review & Send** — always run a **Dry Run** first to check personalization and merge tags render correctly, then switch to Live Send.
 
 ## Security notes specific to this PHP version
 
