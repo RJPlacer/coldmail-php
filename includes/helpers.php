@@ -67,3 +67,30 @@ function json_response($data, int $status = 200): void {
     echo json_encode($data);
     exit;
 }
+
+// --- Saved recipient lists (per user) ---
+
+function safe_username_slug(string $username): string {
+    return preg_replace('/[^a-zA-Z0-9_-]/', '_', $username);
+}
+
+function recipient_lists_file(string $username): string {
+    $dir = DATA_DIR . '/lists';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    return $dir . '/' . safe_username_slug($username) . '.json';
+}
+
+function load_recipient_lists(string $username): array {
+    $file = recipient_lists_file($username);
+    if (!file_exists($file)) {
+        return [];
+    }
+    $data = json_decode(file_get_contents($file), true);
+    return is_array($data) ? $data : [];
+}
+
+function save_recipient_lists(string $username, array $lists): void {
+    file_put_contents(recipient_lists_file($username), json_encode($lists, JSON_PRETTY_PRINT));
+}

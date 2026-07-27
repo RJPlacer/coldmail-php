@@ -336,7 +336,35 @@ $username = current_username();
   <!-- STEP 2: Recipients -->
   <div class="panel" id="panel-2">
     <h2>Recipients</h2>
+
     <div class="notice">
+      <strong>Saved lists</strong> — save a recipient list once, then just pick it from the dropdown next time instead of retyping it.
+    </div>
+
+    <div class="row" style="align-items:flex-end;">
+      <div>
+        <label>Saved lists</label>
+        <select id="saved-lists-select">
+          <option value="">— Select a saved list —</option>
+        </select>
+      </div>
+      <div style="flex:0 0 auto; display:flex; gap:8px;">
+        <button class="btn secondary" onclick="loadSavedList()">Load</button>
+        <button class="btn danger" onclick="deleteSavedList()">Delete</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px; align-items:flex-end;">
+      <div>
+        <label>Save current list as</label>
+        <input type="text" id="save-list-name" placeholder="e.g. Warm leads — July">
+      </div>
+      <div style="flex:0 0 auto;">
+        <button class="btn secondary" onclick="saveCurrentList()">Save this list</button>
+      </div>
+    </div>
+
+    <div class="notice" style="margin-top:20px;">
       Paste CSV data below. First row must be a header row and must include an <strong>email</strong> column.
       Any other columns (e.g. <span style="font-family:var(--mono)">first_name, company</span>) can be used as merge tags in your message.
     </div>
@@ -477,6 +505,96 @@ function goStep(n) {
     s.classList.toggle('done', step < n);
   });
   if (n === 4) buildReview();
+  if (n === 2) refreshSavedLists();
+}
+
+async function refreshSavedLists() {
+  try {
+    const res = await fetch('api/list_recipient_lists.php');
+    const data = await res.json();
+    if (!res.ok) return;
+    const select = document.getElementById('saved-lists-select');
+    const current = select.value;
+    select.innerHTML = '<option value="">— Select a saved list —</option>' +
+      data.lists.map(l => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)} (${l.count})</option>`).join('');
+    if (current) select.value = current;
+  } catch (e) {
+    // silent — saved lists are a convenience feature, not critical path
+  }
+}
+
+async function loadSavedList() {
+  const name = document.getElementById('saved-lists-select').value;
+  if (!name) {
+    showError('Pick a saved list first.');
+    return;
+  }
+  try {
+    const res = await fetch('api/load_recipient_list.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Could not load list.');
+      return;
+    }
+    document.getElementById('raw_recipients').value = data.raw_text;
+    parseRecipients();
+  } catch (e) {
+    showError('Error contacting server: ' + e.message);
+  }
+}
+
+async function saveCurrentList() {
+  const name = document.getElementById('save-list-name').value.trim();
+  const rawText = document.getElementById('raw_recipients').value;
+  if (!name) {
+    showError('Enter a name for this list first.');
+    return;
+  }
+  try {
+    const res = await fetch('api/save_recipient_list.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, raw_text: rawText})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Could not save list.');
+      return;
+    }
+    document.getElementById('save-list-name').value = '';
+    refreshSavedLists();
+  } catch (e) {
+    showError('Error contacting server: ' + e.message);
+  }
+}
+
+async function deleteSavedList() {
+  const select = document.getElementById('saved-lists-select');
+  const name = select.value;
+  if (!name) {
+    showError('Pick a saved list first.');
+    return;
+  }
+  if (!confirm(`Delete saved list "${name}"? This can't be undone.`)) return;
+  try {
+    const res = await fetch('api/delete_recipient_list.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Could not delete list.');
+      return;
+    }
+    refreshSavedLists();
+  } catch (e) {
+    showError('Error contacting server: ' + e.message);
+  }
 }
 
 document.querySelectorAll('.steps-nav .step').forEach(s => {
