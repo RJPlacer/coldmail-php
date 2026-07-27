@@ -74,24 +74,48 @@ $username = current_username();
   #save-status.ok { background: #e8f5ee; color: #1a7a4c; display: block; }
   #save-status.error { background: #fdecec; color: var(--warn); display: block; }
 
+  /* Hamburger menu */
+  .menu-wrap { position: relative; }
+  .hamburger-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 8px;
+    border: 1.5px solid var(--line); background: #fff;
+    cursor: pointer; color: var(--ink);
+  }
+  .hamburger-btn:hover { border-color: var(--accent); }
+  .menu-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    min-width: 230px; background: #fff; border: 1px solid var(--line);
+    border-radius: 12px; box-shadow: 0 12px 32px rgba(11,63,140,0.18);
+    padding: 8px; display: none; z-index: 50;
+  }
+  .menu-dropdown.open { display: block; }
+  .menu-dropdown .menu-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    color: var(--ink); text-decoration: none;
+  }
+  .menu-dropdown .menu-item:hover { background: var(--paper); color: var(--accent-dark); }
+  .menu-dropdown .menu-user { padding: 10px 12px 4px; font-size: 12px; color: var(--muted); }
+  .menu-dropdown .menu-divider { height: 1px; background: var(--line); margin: 6px 4px; }
+  .menu-dropdown .menu-item.danger { color: var(--warn); }
+  .menu-dropdown .menu-item.danger:hover { background: #fdecec; }
+  .menu-dropdown .menu-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 6px 16px rgba(11, 63, 140, 0.25); }
   /* ============ Mobile responsive ============ */
   @media (max-width: 720px) {
     .shell { padding: 18px 14px 60px; }
-
-    /* Prevent iOS Safari from auto-zooming when an input is focused */
-    input[type=text], input[type=password], input[type=number], select {
-      font-size: 16px;
-    }
-
     header.top { flex-wrap: wrap; row-gap: 8px; }
     header.top .brand-lockup img { height: 24px; }
     header.top .product-name { font-size: 15px; }
-    header.top .right { width: 100%; }
     h1 { font-size: 20px; }
-    .panel { padding: 18px; border-radius: 14px; }
-    .row { flex-direction: column; gap: 0; }
-    .row > div { flex: none; }
-    .btn { width: 100%; text-align: center; padding: 13px 20px; }
+    .panel { padding: 8px; border-radius: 14px; }
+    table { font-size: 12px; }
+    th, td { padding: 9px 10px; }
+    .subject-cell { max-width: 200px; }
+    .empty-state { padding: 40px 14px; font-size: 13px; }
   }
 </style>
 </head>
@@ -104,8 +128,18 @@ $username = current_username();
       <div class="divider"></div>
       <div class="product-name">Settings</div>
     </div>
-    <div class="right">
+    <div class="right menu-wrap" style="gap:12px; display:flex; align-items:center;">
       <a href="index.php" class="back-link">← Back to Dispatch</a>
+      <button class="hamburger-btn" id="menu-toggle" aria-label="Open menu" aria-expanded="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <div class="menu-dropdown" id="menu-dropdown">
+        <a href="settings.php" class="menu-item active">Settings</a>
+        <a href="history.php" class="menu-item">History</a>
+        <div class="menu-divider"></div>
+        <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
+        <a href="logout.php" class="menu-item danger">Log out</a>
+      </div>
     </div>
   </header>
 
@@ -220,6 +254,23 @@ async function saveSettings() {
 }
 
 loadSettings();
+
+(function () {
+  const btn = document.getElementById('menu-toggle');
+  const menu = document.getElementById('menu-dropdown');
+  if (!btn || !menu) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = menu.classList.toggle('open');
+    btn.setAttribute('aria-expanded', isOpen);
+  });
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target) && e.target !== btn) {
+      menu.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+})();
 </script>
 </body>
 </html>

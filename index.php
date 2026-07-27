@@ -267,6 +267,63 @@ $username = current_username();
   footer.app-footer a:hover { text-decoration: underline; }
   footer.app-footer .contact-links { display: flex; gap: 16px; }
 
+  /* Hamburger menu */
+  .menu-wrap { position: relative; }
+  .hamburger-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 8px;
+    border: 1.5px solid var(--line); background: #fff;
+    cursor: pointer; color: var(--ink);
+  }
+  .hamburger-btn:hover { border-color: var(--accent); }
+  .menu-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    min-width: 230px; background: #fff; border: 1px solid var(--line);
+    border-radius: 12px; box-shadow: 0 12px 32px rgba(11,63,140,0.18);
+    padding: 8px; display: none; z-index: 50;
+  }
+  .menu-dropdown.open { display: block; }
+  .menu-dropdown .menu-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    color: var(--ink); text-decoration: none;
+  }
+  .menu-dropdown .menu-item:hover { background: var(--paper); color: var(--accent-dark); }
+  .menu-dropdown .menu-user { padding: 10px 12px 4px; font-size: 12px; color: var(--muted); }
+  .menu-dropdown .menu-divider { height: 1px; background: var(--line); margin: 6px 4px; }
+  .menu-dropdown .menu-item.danger { color: var(--warn); }
+  .menu-dropdown .menu-item.danger:hover { background: #fdecec; }
+
+  .saved-manager {
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f7fafd, #ffffff);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .saved-manager .sm-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--accent-dark); margin-bottom: 4px; }
+  .saved-manager .sm-desc { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+  .saved-manager .sm-row { display: flex; gap: 12px; align-items: flex-end; }
+  .saved-manager .sm-row + .sm-row { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+  .saved-manager .sm-row > div:first-child { flex: 1; }
+  .saved-manager .sm-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+  @media (max-width: 720px) {
+    .saved-manager .sm-row { flex-direction: column; align-items: stretch; }
+    .saved-manager .sm-actions .btn { flex: 1; }
+  }
+
+  .app-footer-v2 { margin-top: 36px; padding: 28px 24px; border-top: 1px solid var(--line); text-align: center; }
+  .gt-title { font-size: 15px; font-weight: 800; color: var(--ink); margin-bottom: 18px; }
+  .gt-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 28px; margin-bottom: 16px; }
+  .gt-item { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+  .gt-item svg { color: var(--accent); }
+  .gt-item a { color: var(--accent-dark); text-decoration: none; font-weight: 600; }
+  .gt-item a:hover { text-decoration: underline; }
+  .gt-site { margin-bottom: 10px; font-size: 12.5px; }
+  .gt-site a { color: var(--accent-dark); font-weight: 700; text-decoration: none; }
+  .gt-site a:hover { text-decoration: underline; }
+  .gt-copy { font-size: 11.5px; color: var(--muted); }
+
   /* ============ Mobile responsive ============ */
   @media (max-width: 720px) {
     .shell { padding: 18px 14px 60px; }
@@ -355,18 +412,27 @@ $username = current_username();
       <div class="divider"></div>
       <div class="product-name">Dispatch</div>
     </div>
-    <div class="right">
-      <a href="history.php" class="logout-btn" title="Campaign History" style="display:inline-flex; align-items:center; gap:6px;">
+    <div class="right menu-wrap">
+    <button class="hamburger-btn" id="menu-toggle" aria-label="Open menu" aria-expanded="false">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+    <div class="menu-dropdown" id="menu-dropdown">
+      <a href="history.php" class="menu-item">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         History
       </a>
-      <a href="settings.php" class="logout-btn" title="SMTP Settings" style="display:inline-flex; align-items:center; gap:6px;">
+      <a href="settings.php" class="menu-item">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         Settings
       </a>
-      <div class="user-chip">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
-      <a href="logout.php" class="logout-btn">Log out</a>
+      <div class="menu-divider"></div>
+      <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
+      <a href="logout.php" class="menu-item danger">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Log out
+      </a>
     </div>
+</div>
   </header>
   <p class="subtitle">Runs on your own server. SMTP credentials are saved once in Settings, not re-entered every time.</p>
 
@@ -389,29 +455,34 @@ $username = current_username();
       <strong>Saved lists</strong> — save a recipient list once, then just pick it from the dropdown next time instead of retyping it.
     </div>
 
-    <div class="row" style="align-items:flex-end;">
-      <div>
-        <label>Saved lists</label>
-        <select id="saved-lists-select">
-          <option value="">— Select a saved list —</option>
-        </select>
+    <div class="saved-manager">
+      <div class="sm-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+        Saved lists
       </div>
-      <div style="flex:0 0 auto; display:flex; gap:8px;">
-        <button class="btn secondary" onclick="loadSavedList()">Load</button>
-        <button class="btn danger" onclick="deleteSavedList()">Delete</button>
+      <div class="sm-desc">Save a recipient list once, then just pick it from the dropdown next time instead of retyping it.</div>
+
+      <div class="sm-row">
+        <div>
+          <label style="margin-top:0;">Choose a saved list</label>
+          <select id="saved-lists-select"><option value="">— Select a saved list —</option></select>
+        </div>
+        <div class="sm-actions">
+          <button class="btn secondary" onclick="loadSavedList()">Load</button>
+          <button class="btn danger" onclick="deleteSavedList()">Delete</button>
+        </div>
+      </div>
+
+      <div class="sm-row">
+        <div>
+          <label style="margin-top:0;">Save current list as</label>
+          <input type="text" id="save-list-name" placeholder="e.g. Warm leads — July">
+        </div>
+        <div class="sm-actions">
+          <button class="btn secondary" onclick="saveCurrentList()">Save this list</button>
+        </div>
       </div>
     </div>
-
-    <div class="row" style="margin-top:12px; align-items:flex-end;">
-      <div>
-        <label>Save current list as</label>
-        <input type="text" id="save-list-name" placeholder="e.g. Warm leads — July">
-      </div>
-      <div style="flex:0 0 auto;">
-        <button class="btn secondary" onclick="saveCurrentList()">Save this list</button>
-      </div>
-    </div>
-
     <div class="notice" style="margin-top:20px;">
       Paste CSV data below. First row must be a header row and must include an <strong>email</strong> column.
       Any other columns (e.g. <span style="font-family:var(--mono)">first_name, company</span>) can be used as merge tags in your message.
@@ -545,13 +616,30 @@ Jane"></textarea>
 
   </div>
 
-  <footer class="app-footer">
-    <div>AlfaDevs Dispatch — internal team tool</div>
-    <div class="contact-links">
-      <a href="mailto:alfadevs.team@gmail.com">alfadevs.team@gmail.com</a>
-      <span style="color: var(--line)">|</span>
-      <a href="#" onclick="return false;" title="Add your website link here">alfadevs.com (placeholder)</a>
+  <footer class="app-footer-v2">
+    <div class="gt-title">Get in Touch</div>
+    <div class="gt-grid">
+      <div class="gt-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"></path><path d="M4 6l8 7 8-7"></path></svg>
+        <div><a href="mailto:leiprtla@gmail.com">leiprtla@gmail.com</a><br><a href="mailto:bphildavid@gmail.com">bphildavid@gmail.com</a></div>
+      </div>
+      <div class="gt-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+        <a href="https://facebook.com/AlfaDevs" target="_blank" rel="noopener">facebook.com/AlfaDevs</a>
+      </div>
+      <div class="gt-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.98.34 1.94.63 2.87a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.21-1.2a2 2 0 0 1 2.11-.45c.93.29 1.89.5 2.87.63A2 2 0 0 1 22 16.92z"></path></svg>
+        <div>+63 9690603058 / 9458544797</div>
+      </div>
+      <div class="gt-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        <div>Philippines</div>
+      </div>
     </div>
+    <div class="gt-site">
+      <a href="https://alfadevs.leiprtla.workers.dev" target="_blank" rel="noopener">alfadevs.leiprtla.workers.dev</a>
+    </div>
+    <div class="gt-copy">AlfaDevs Dispatch — internal team tool · © <?php echo date('Y'); ?> AlfaDevs. All rights reserved.</div>
   </footer>
 
 </div>
@@ -1002,6 +1090,24 @@ function downloadLog() {
   if (!currentJobId) return;
   window.location.href = 'api/download_log.php?job_id=' + currentJobId;
 }
+
+(function () {
+  const btn = document.getElementById('menu-toggle');
+  const menu = document.getElementById('menu-dropdown');
+  if (!btn || !menu) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = menu.classList.toggle('open');
+    btn.setAttribute('aria-expanded', isOpen);
+  });
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target) && e.target !== btn) {
+      menu.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+})();
+
 </script>
 </body>
 </html>

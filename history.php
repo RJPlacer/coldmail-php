@@ -62,6 +62,36 @@ $username = current_username();
   .dl-link:hover { text-decoration: underline; }
   .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); }
 
+  /* Hamburger menu */
+  .menu-wrap { position: relative; }
+  .hamburger-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 8px;
+    border: 1.5px solid var(--line); background: #fff;
+    cursor: pointer; color: var(--ink);
+  }
+  .hamburger-btn:hover { border-color: var(--accent); }
+  .menu-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    min-width: 230px; background: #fff; border: 1px solid var(--line);
+    border-radius: 12px; box-shadow: 0 12px 32px rgba(11,63,140,0.18);
+    padding: 8px; display: none; z-index: 50;
+  }
+  .menu-dropdown.open { display: block; }
+  .menu-dropdown .menu-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    color: var(--ink); text-decoration: none;
+  }
+  .menu-dropdown .menu-item:hover { background: var(--paper); color: var(--accent-dark); }
+  .menu-dropdown .menu-user { padding: 10px 12px 4px; font-size: 12px; color: var(--muted); }
+  .menu-dropdown .menu-divider { height: 1px; background: var(--line); margin: 6px 4px; }
+  .menu-dropdown .menu-item.danger { color: var(--warn); }
+  .menu-dropdown .menu-item.danger:hover { background: #fdecec; }
+  .menu-dropdown .menu-item.active { background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 6px 16px rgba(11, 63, 140, 0.25); }
   /* ============ Mobile responsive ============ */
   @media (max-width: 720px) {
     .shell { padding: 18px 14px 60px; }
@@ -86,7 +116,19 @@ $username = current_username();
       <div class="divider"></div>
       <div class="product-name">History</div>
     </div>
-    <a href="index.php" class="back-link">← Back to Dispatch</a>
+    <div class="right menu-wrap" style="gap:12px; display:flex; align-items:center;">
+      <a href="index.php" class="back-link">← Back to Dispatch</a>
+      <button class="hamburger-btn" id="menu-toggle" aria-label="Open menu" aria-expanded="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <div class="menu-dropdown" id="menu-dropdown">
+        <a href="settings.php" class="menu-item">Settings</a>
+        <a href="history.php" class="menu-item active">History</a>
+        <div class="menu-divider"></div>
+        <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
+        <a href="logout.php" class="menu-item danger">Log out</a>
+      </div>
+    </div>
   </header>
 
   <h1>Campaign History</h1>
@@ -162,6 +204,23 @@ async function loadHistory() {
 }
 
 loadHistory();
+
+(function () {
+  const btn = document.getElementById('menu-toggle');
+  const menu = document.getElementById('menu-dropdown');
+  if (!btn || !menu) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = menu.classList.toggle('open');
+    btn.setAttribute('aria-expanded', isOpen);
+  });
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target) && e.target !== btn) {
+      menu.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+})();
 </script>
 </body>
 </html>
