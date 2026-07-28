@@ -181,6 +181,7 @@ async function loadHistory() {
         <th>Recipients</th>
         <th>Sent</th>
         <th>Failed</th>
+        <th>Suppressed</th>
         <th>Status</th>
         <th>Log</th>
       </tr>`;
@@ -192,6 +193,7 @@ async function loadHistory() {
         <td>${job.total}</td>
         <td>${job.sent}</td>
         <td>${job.failed}</td>
+        <td>${job.suppressed || 0}</td>
         <td><span class="badge ${job.status}">${escapeHtml(job.status)}</span></td>
         <td><a class="dl-link" href="api/download_log.php?job_id=${encodeURIComponent(job.job_id)}">Download</a></td>
       </tr>`;

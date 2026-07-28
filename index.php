@@ -252,6 +252,7 @@ $username = current_username();
   .feed .line.sent { color: var(--accent-dark); }
   .feed .line.failed { color: var(--warn); }
   .feed .line.dry-run-ok { color: var(--muted); }
+  .feed .line.suppressed { color: var(--muted); font-style: italic; }
   .preview-box { border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; background: var(--paper); margin-top: 12px; font-size: 14px; line-height: 1.6; }
   .preview-box .ps { font-weight: 700; margin-bottom: 8px; }
   #error-banner {
@@ -484,6 +485,29 @@ $username = current_username();
         </div>
       </div>
     </div>
+    <div class="saved-manager" style="border-color:#f3d9d9; background:linear-gradient(180deg,#fdf5f5,#ffffff);">
+      <div class="sm-title" style="color:var(--warn);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+        Suppression list <span style="font-weight:400; text-transform:none; font-size:11.5px; color:var(--muted);">(shared team-wide)</span>
+      </div>
+      <div class="sm-desc">Anyone on this list is automatically skipped on every future send, by every team member — no matter whose list they're on. Add someone here the moment they ask to unsubscribe.</div>
+
+      <div class="sm-row">
+        <div>
+          <label style="margin-top:0;">Add an email address</label>
+          <input type="text" id="suppress-email-input" placeholder="jane@acme.com">
+        </div>
+        <div>
+          <label style="margin-top:0;">Reason <span style="font-weight:400; text-transform:none;">(optional)</span></label>
+          <input type="text" id="suppress-reason-input" placeholder="e.g. Replied asking to unsubscribe">
+        </div>
+        <div class="sm-actions">
+          <button class="btn secondary" onclick="addSuppressedEmail()">Add to suppression list</button>
+        </div>
+      </div>
+
+      <div id="suppression-table-wrap" style="margin-top:16px;"></div>
+    </div>
     <div class="notice" style="margin-top:20px;">
       Paste CSV data below. First row must be a header row and must include an <strong>email</strong> column.
       Any other columns (e.g. <span style="font-family:var(--mono)">first_name, company</span>) can be used as merge tags in your message.
@@ -609,6 +633,7 @@ Jane"></textarea>
         <div class="stat"><div class="num" id="stat-total">0</div><div class="lbl">Total</div></div>
         <div class="stat sent"><div class="num" id="stat-sent">0</div><div class="lbl">Sent</div></div>
         <div class="stat failed"><div class="num" id="stat-failed">0</div><div class="lbl">Failed</div></div>
+        <div class="stat"><div class="num" id="stat-suppressed">0</div><div class="lbl">Suppressed</div></div>
       </div>
       <div class="progress-bar"><div class="fill" id="progress-fill"></div></div>
       <div id="status-text" style="font-family:var(--mono); font-size:12px; color:var(--muted); margin-bottom:10px;"></div>
@@ -678,6 +703,7 @@ async function loadSmtpConfig() {
 loadSmtpConfig();
 refreshSavedLists();
 refreshSavedTemplates();
+refreshSuppressionList();
 
 function goStep(n) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -688,7 +714,7 @@ function goStep(n) {
     s.classList.toggle('done', step < n);
   });
   if (n === 4) buildReview();
-  if (n === 2) refreshSavedLists();
+  if (n === 2) { refreshSavedLists(); refreshSuppressionList(); }
   if (n === 3) refreshSavedTemplates();
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
@@ -727,6 +753,74 @@ async function loadSavedList() {
     }
     document.getElementById('raw_recipients').value = data.raw_text;
     parseRecipients();
+  } catch (e) {
+    showError('Error contacting server: ' + e.message);
+  }
+}
+
+async function refreshSuppressionList() {
+  const wrap = document.getElementById('suppression-table-wrap');
+  try {
+    const res = await fetch('api/list_suppressed.php');
+    const data = await res.json();
+    if (!res.ok) return;
+    if (!data.suppressed.length) {
+      wrap.innerHTML = `<div class="hint">No one on the suppression list yet.</div>`;
+      return;
+    }
+    let html = `<div class="table-scroll"><table class="preview"><tr><th>Email</th><th>Added by</th><th>Date</th><th>Reason</th><th></th></tr>`;
+    data.suppressed.forEach(s => {
+      const d = s.added_at ? new Date(s.added_at).toLocaleDateString() : '—';
+      html += `<tr>
+        <td>${escapeHtml(s.email)}</td>
+        <td>${escapeHtml(s.added_by || '—')}</td>
+        <td>${d}</td>
+        <td>${escapeHtml(s.reason || '—')}</td>
+        <td><button class="btn danger" style="padding:4px 10px; font-size:11px;" onclick="removeSuppressedEmail('${encodeURIComponent(s.email)}')">Remove</button></td>
+      </tr>`;
+    });
+    html += '</table></div>';
+    wrap.innerHTML = html;
+  } catch (e) {
+    wrap.innerHTML = `<div class="hint">Could not load suppression list.</div>`;
+  }
+}
+
+async function addSuppressedEmail() {
+  const input = document.getElementById('suppress-email-input');
+  const reasonInput = document.getElementById('suppress-reason-input');
+  const email = input.value.trim();
+  const reason = reasonInput.value.trim();
+  if (!email) { showError('Enter an email address first.'); return; }
+  try {
+    const res = await fetch('api/add_suppressed.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, reason})
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(data.error || 'Could not add to suppression list.'); return; }
+    input.value = '';
+    reasonInput.value = '';
+    refreshSuppressionList();
+    if (document.getElementById('raw_recipients').value.trim()) parseRecipients();
+  } catch (e) {
+    showError('Error contacting server: ' + e.message);
+  }
+}
+
+async function removeSuppressedEmail(encodedEmail) {
+  const email = decodeURIComponent(encodedEmail);
+  if (!confirm(`Remove ${email} from the suppression list? They'll be emailable again.`)) return;
+  try {
+    const res = await fetch('api/remove_suppressed.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email})
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(data.error || 'Could not remove.'); return; }
+    refreshSuppressionList();
   } catch (e) {
     showError('Error contacting server: ' + e.message);
   }
@@ -932,6 +1026,9 @@ async function parseRecipients() {
     }
     parsedCount = data.count;
     let html = `<div class="notice">Found <strong>${data.count}</strong> valid recipients. Columns: ${data.fieldnames.join(', ')}</div>`;
+    if (data.suppressed_count > 0) {
+      html += `<div class="notice warn">${data.suppressed_count} of these are on the suppression list and will be skipped automatically when you send.</div>`;
+    }
     html += '<div class="table-scroll"><table class="preview"><tr>' + data.fieldnames.map(f => `<th>${f}</th>`).join('') + '</tr>';
     data.preview.forEach(row => {
       html += '<tr>' + data.fieldnames.map(f => `<td>${(row[f]||'')}</td>`).join('') + '</tr>';
@@ -1026,6 +1123,9 @@ async function startSend() {
     stoppedByUser = false;
     document.getElementById('send-progress').style.display = 'block';
     document.getElementById('stat-total').textContent = data.total;
+    document.getElementById('stat-suppressed').textContent = data.skipped_suppressed || 0;
+    document.getElementById('send-progress').style.display = 'block';
+    document.getElementById('stat-total').textContent = data.total;
     document.getElementById('stop-btn').style.display = 'inline-block';
     document.getElementById('download-btn').style.display = 'none';
     sendLoopActive = true;
@@ -1069,6 +1169,7 @@ async function sendNextLoop(delayMs) {
 }
 
 function renderProgress(data) {
+  document.getElementById('stat-suppressed').textContent = data.suppressed || 0;
   document.getElementById('stat-sent').textContent = data.sent;
   document.getElementById('stat-failed').textContent = data.failed;
   const pct = data.total ? Math.round((data.progress / data.total) * 100) : 0;

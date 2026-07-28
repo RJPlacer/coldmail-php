@@ -43,6 +43,23 @@ $job['status'] = 'sending';
 $row = $job['recipients'][$job['index']];
 $toAddr = $row['email'] ?? '';
 
+if (is_suppressed($toAddr)) {
+    $job['results'][] = [
+        'email' => $toAddr,
+        'subject' => render_merge_tags($job['subject'], $row),
+        'status' => 'suppressed',
+        'error' => 'On the suppression list — skipped automatically.',
+        'timestamp' => date('c'),
+    ];
+    $job['suppressed'] = ($job['suppressed'] ?? 0) + 1;
+    $job['index'] += 1;
+    if ($job['index'] >= $job['total']) {
+        $job['status'] = 'done';
+    }
+    write_job($fp, $job);
+    json_response(summarize($job));
+}
+
 $subject = render_merge_tags($job['subject'], $row);
 $mainBodyText = render_merge_tags($job['body'], $row);
 $footerText = '';
@@ -183,6 +200,7 @@ function summarize(array $job): array {
         'total' => $job['total'],
         'sent' => $job['sent'],
         'failed' => $job['failed'],
+        'suppressed' => ($job['suppressed'] ?? 0) + ($job['skipped_suppressed'] ?? 0),
         'progress' => $job['index'],
         'results' => array_slice($job['results'], -20),
         'error' => $job['error'] ?? null,

@@ -5,10 +5,21 @@ require_login(true);
 $config = json_input();
 
 $parsed = parse_recipients_csv($config['raw_recipients'] ?? '');
-$rows = $parsed['rows'];
+$allRows = $parsed['rows'];
+
+$suppressionList = load_suppression_list();
+$rows = [];
+$skippedSuppressed = 0;
+foreach ($allRows as $row) {
+    if (is_suppressed($row['email'] ?? '', $suppressionList)) {
+        $skippedSuppressed++;
+        continue;
+    }
+    $rows[] = $row;
+}
 
 if (empty($rows)) {
-    json_response(['error' => 'No valid recipients found.'], 400);
+    json_response(['error' => 'No valid recipients found — everyone left on this list may already be on the suppression list.'], 400);
 }
 
 if (empty($config['smtp_host']) || empty($config['smtp_user']) || empty($config['smtp_pass'])) {
@@ -42,8 +53,13 @@ $job = [
     'results' => [],
     'owner' => current_username(),
     'created_at' => date('c'),
+    'sent' => 0,
+    'failed' => 0,
+    'suppressed' => 0,
+    'skipped_suppressed' => $skippedSuppressed,
+    'total' => count($rows),
 ];
 
 file_put_contents(JOBS_DIR . "/$jobId.json", json_encode($job));
 
-json_response(['job_id' => $jobId, 'total' => count($rows)]);
+json_response(['job_id' => $jobId, 'total' => count($rows), 'skipped_suppressed' => $skippedSuppressed]);

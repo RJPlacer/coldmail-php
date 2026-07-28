@@ -159,10 +159,98 @@ function save_message_templates(string $username, array $templates): void {
     file_put_contents(message_templates_file($username), json_encode($templates, JSON_PRETTY_PRINT));
 }
 
+// --- Shared suppression / opt-out list (team-wide, not per-user) ---
+
+function suppression_list_file(): string {
+    $dir = DATA_DIR . '/suppression';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0700, true);
+    }
+    return $dir . '/list.json';
+}
+
+function load_suppression_list(): array {
+    $file = suppression_list_file();
+    if (!file_exists($file)) {
+        return [];
+    }
+    $data = json_decode(file_get_contents($file), true);
+    return is_array($data) ? $data : [];
+}
+
+function is_suppressed(string $email, ?array $list = null): bool {
+    $email = strtolower(trim($email));
+    if ($email === '') {
+        return false;
+    }
+    if ($list === null) {
+        $list = load_suppression_list();
+    }
+    return isset($list[$email]);
+}
+
+/**
+ * Add an email to the shared suppression list. Locks the file so
+ * concurrent adds from different team members don't clobber each other.
+ */
+function add_suppressed_email(string $email, string $addedBy, string $reason = ''): void {
+    $email = strtolower(trim($email));
+    $file = suppression_list_file();
+    if (!file_exists($file)) {
+        file_put_contents($file, '{}');
+    }
+    $fp = fopen($file, 'r+');
+    flock($fp, LOCK_EX);
+    $list = json_decode(stream_get_contents($fp), true);
+    if (!is_array($list)) {
+        $list = [];
+    }
+    $list[$email] = [
+        'added_by' => $addedBy,
+        'added_at' => date('c'),
+        'reason' => $reason,
+    ];
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, json_encode($list, JSON_PRETTY_PRINT));
+    flock($fp, LOCK_UN);
+    fclose($fp);
+}
+
+function remove_suppressed_email(string $email): void {
+    $email = strtolower(trim($email));
+    $file = suppression_list_file();
+    if (!file_exists($file)) {
+        return;
+    }
+    $fp = fopen($file, 'r+');
+    flock($fp, LOCK_EX);
+    $list = json_decode(stream_get_contents($fp), true);
+    if (!is_array($list)) {
+        $list = [];
+    }
+    unset($list[$email]);
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, json_encode($list, JSON_PRETTY_PRINT));
+    flock($fp, LOCK_UN);
+    fclose($fp);
+}
+
 // --- Campaign history (derived from job files already on disk) ---
 
 function list_user_jobs(string $username): array {
-    $jobs = [];
+    $jobs[] = [
+        'job_id' => $jobId,
+        'subject' => $job['subject'] ?? '',
+        'total' => $job['total'] ?? 0,
+        'sent' => $job['sent'] ?? 0,
+        'failed' => $job['failed'] ?? 0,
+        'suppressed' => $job['suppressed'] ?? 0,
+        'status' => $job['status'] ?? 'unknown',
+        'dry_run' => !empty($job['dry_run']),
+        'created_at' => $job['created_at'] ?? '',
+    ];
     foreach (glob(JOBS_DIR . '/*.json') as $file) {
         $job = json_decode(file_get_contents($file), true);
         if (!is_array($job) || ($job['owner'] ?? null) !== $username) {
