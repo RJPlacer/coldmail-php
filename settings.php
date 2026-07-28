@@ -136,6 +136,7 @@ $username = current_username();
       <div class="menu-dropdown" id="menu-dropdown">
         <a href="settings.php" class="menu-item active">Settings</a>
         <a href="history.php" class="menu-item">History</a>
+        <a href="suppression.php" class="menu-item">Suppression List</a>
         <div class="menu-divider"></div>
         <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
         <a href="logout.php" class="menu-item danger">Log out</a>

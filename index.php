@@ -302,7 +302,11 @@ $username = current_username();
     padding: 18px 20px;
     margin-bottom: 20px;
   }
-  .saved-manager .sm-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--accent-dark); margin-bottom: 4px; }
+  .saved-manager .sm-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--accent-dark); margin-bottom: 4px; cursor: pointer; user-select: none; }
+  .saved-manager .sm-title:hover { opacity: 0.85; }
+  .saved-manager .sm-title .sm-chevron { margin-left: auto; transition: transform 0.2s ease; flex-shrink: 0; }
+  .saved-manager .sm-body { overflow: hidden; }
+  .saved-manager .sm-body.collapsed { display: none; }
   .saved-manager .sm-desc { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
   .saved-manager .sm-row { display: flex; gap: 12px; align-items: flex-end; }
   .saved-manager .sm-row + .sm-row { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
@@ -427,6 +431,10 @@ $username = current_username();
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           Settings
         </a>
+        <a href="suppression.php" class="menu-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          Suppression List
+        </a>
         <div class="menu-divider"></div>
         <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
         <a href="logout.php" class="menu-item danger">
@@ -458,55 +466,45 @@ $username = current_username();
     </div>
 
     <div class="saved-manager">
-      <div class="sm-title">
+      <div class="sm-title" onclick="toggleSavedManager('saved-lists-body', this)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
         Saved lists
+        <svg class="sm-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
-      <div class="sm-desc">Save a recipient list once, then just pick it from the dropdown next time instead of retyping it.</div>
+      <div class="sm-body" id="saved-lists-body">
+        <div class="sm-desc">Save a recipient list once, then just pick it from the dropdown next time instead of retyping it.</div>
 
-      <div class="sm-row">
-        <div>
-          <label style="margin-top:0;">Choose a saved list</label>
-          <select id="saved-lists-select"><option value="">— Select a saved list —</option></select>
+        <div class="sm-row">
+          <div>
+            <label style="margin-top:0;">Choose a saved list</label>
+            <select id="saved-lists-select"><option value="">— Select a saved list —</option></select>
+          </div>
+          <div class="sm-actions">
+            <button class="btn secondary" onclick="loadSavedList()">Load</button>
+            <button class="btn danger" onclick="deleteSavedList()">Delete</button>
+          </div>
         </div>
-        <div class="sm-actions">
-          <button class="btn secondary" onclick="loadSavedList()">Load</button>
-          <button class="btn danger" onclick="deleteSavedList()">Delete</button>
-        </div>
-      </div>
 
-      <div class="sm-row">
-        <div>
-          <label style="margin-top:0;">Save current list as</label>
-          <input type="text" id="save-list-name" placeholder="e.g. Warm leads — July">
-        </div>
-        <div class="sm-actions">
-          <button class="btn secondary" onclick="saveCurrentList()">Save this list</button>
+        <div class="sm-row">
+          <div>
+            <label style="margin-top:0;">Save current list as</label>
+            <input type="text" id="save-list-name" placeholder="e.g. Warm leads — July">
+          </div>
+          <div class="sm-actions">
+            <button class="btn secondary" onclick="saveCurrentList()">Save this list</button>
+          </div>
         </div>
       </div>
     </div>
-    <div class="saved-manager" style="border-color:#f3d9d9; background:linear-gradient(180deg,#fdf5f5,#ffffff);">
-      <div class="sm-title" style="color:var(--warn);">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-        Suppression list <span style="font-weight:400; text-transform:none; font-size:11.5px; color:var(--muted);">(shared team-wide)</span>
+    <div class="saved-manager" style="border-color:#f3d9d9; background:linear-gradient(180deg,#fdf5f5,#ffffff); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+      <div>
+        <div class="sm-title" style="color:var(--warn); cursor:default; margin-bottom:2px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          Suppression list <span style="font-weight:400; text-transform:none; font-size:11.5px; color:var(--muted);">(shared team-wide)</span>
+        </div>
+        <div class="sm-desc" style="margin-bottom:0;">Anyone here is skipped automatically on every send, by every team member. Add someone the moment they ask to unsubscribe.</div>
       </div>
-      <div class="sm-desc">Anyone on this list is automatically skipped on every future send, by every team member — no matter whose list they're on. Add someone here the moment they ask to unsubscribe.</div>
-
-      <div class="sm-row">
-        <div>
-          <label style="margin-top:0;">Add an email address</label>
-          <input type="text" id="suppress-email-input" placeholder="jane@acme.com">
-        </div>
-        <div>
-          <label style="margin-top:0;">Reason <span style="font-weight:400; text-transform:none;">(optional)</span></label>
-          <input type="text" id="suppress-reason-input" placeholder="e.g. Replied asking to unsubscribe">
-        </div>
-        <div class="sm-actions">
-          <button class="btn secondary" onclick="addSuppressedEmail()">Add to suppression list</button>
-        </div>
-      </div>
-
-      <div id="suppression-table-wrap" style="margin-top:16px;"></div>
+      <a href="suppression.php" class="btn secondary" style="white-space:nowrap; flex:0 0 auto;">Manage suppression list →</a>
     </div>
     <div class="notice" style="margin-top:20px;">
       Paste CSV data below. First row must be a header row and must include an <strong>email</strong> column.
@@ -681,6 +679,14 @@ let currentJobId = null;
 let sendLoopActive = false;
 let stoppedByUser = false;
 
+function toggleSavedManager(bodyId, headerEl) {
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+  const collapsed = body.classList.toggle('collapsed');
+  const chevron = headerEl.querySelector('.sm-chevron');
+  if (chevron) chevron.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
 function showError(msg) {
   const banner = document.getElementById('error-banner');
   banner.textContent = msg;
@@ -703,7 +709,6 @@ async function loadSmtpConfig() {
 loadSmtpConfig();
 refreshSavedLists();
 refreshSavedTemplates();
-refreshSuppressionList();
 
 function goStep(n) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -714,7 +719,7 @@ function goStep(n) {
     s.classList.toggle('done', step < n);
   });
   if (n === 4) buildReview();
-  if (n === 2) { refreshSavedLists(); refreshSuppressionList(); }
+  if (n === 2) { refreshSavedLists(); }
   if (n === 3) refreshSavedTemplates();
   window.scrollTo({top: 0, behavior: 'smooth'});
 }
@@ -753,74 +758,6 @@ async function loadSavedList() {
     }
     document.getElementById('raw_recipients').value = data.raw_text;
     parseRecipients();
-  } catch (e) {
-    showError('Error contacting server: ' + e.message);
-  }
-}
-
-async function refreshSuppressionList() {
-  const wrap = document.getElementById('suppression-table-wrap');
-  try {
-    const res = await fetch('api/list_suppressed.php');
-    const data = await res.json();
-    if (!res.ok) return;
-    if (!data.suppressed.length) {
-      wrap.innerHTML = `<div class="hint">No one on the suppression list yet.</div>`;
-      return;
-    }
-    let html = `<div class="table-scroll"><table class="preview"><tr><th>Email</th><th>Added by</th><th>Date</th><th>Reason</th><th></th></tr>`;
-    data.suppressed.forEach(s => {
-      const d = s.added_at ? new Date(s.added_at).toLocaleDateString() : '—';
-      html += `<tr>
-        <td>${escapeHtml(s.email)}</td>
-        <td>${escapeHtml(s.added_by || '—')}</td>
-        <td>${d}</td>
-        <td>${escapeHtml(s.reason || '—')}</td>
-        <td><button class="btn danger" style="padding:4px 10px; font-size:11px;" onclick="removeSuppressedEmail('${encodeURIComponent(s.email)}')">Remove</button></td>
-      </tr>`;
-    });
-    html += '</table></div>';
-    wrap.innerHTML = html;
-  } catch (e) {
-    wrap.innerHTML = `<div class="hint">Could not load suppression list.</div>`;
-  }
-}
-
-async function addSuppressedEmail() {
-  const input = document.getElementById('suppress-email-input');
-  const reasonInput = document.getElementById('suppress-reason-input');
-  const email = input.value.trim();
-  const reason = reasonInput.value.trim();
-  if (!email) { showError('Enter an email address first.'); return; }
-  try {
-    const res = await fetch('api/add_suppressed.php', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({email, reason})
-    });
-    const data = await res.json();
-    if (!res.ok) { showError(data.error || 'Could not add to suppression list.'); return; }
-    input.value = '';
-    reasonInput.value = '';
-    refreshSuppressionList();
-    if (document.getElementById('raw_recipients').value.trim()) parseRecipients();
-  } catch (e) {
-    showError('Error contacting server: ' + e.message);
-  }
-}
-
-async function removeSuppressedEmail(encodedEmail) {
-  const email = decodeURIComponent(encodedEmail);
-  if (!confirm(`Remove ${email} from the suppression list? They'll be emailable again.`)) return;
-  try {
-    const res = await fetch('api/remove_suppressed.php', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({email})
-    });
-    const data = await res.json();
-    if (!res.ok) { showError(data.error || 'Could not remove.'); return; }
-    refreshSuppressionList();
   } catch (e) {
     showError('Error contacting server: ' + e.message);
   }
