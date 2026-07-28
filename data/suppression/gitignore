@@ -1,0 +1,17 @@
+# Sensitive / local-only data — never commit these
+data/users.json
+data/jobs/*.json
+data/lists/*.json
+data/smtp/*.json
+data/templates/*.json
+data/suppression/*.json
+
+# Keep the folder structure tracked
+!data/jobs/.gitkeep
+!data/lists/.gitkeep
+!data/smtp/.gitkeep
+!data/templates/.gitkeep
+!data/suppression/.gitkeep
+
+# OS
+.DS_Store

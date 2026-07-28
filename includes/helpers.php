@@ -240,17 +240,7 @@ function remove_suppressed_email(string $email): void {
 // --- Campaign history (derived from job files already on disk) ---
 
 function list_user_jobs(string $username): array {
-    $jobs[] = [
-        'job_id' => $jobId,
-        'subject' => $job['subject'] ?? '',
-        'total' => $job['total'] ?? 0,
-        'sent' => $job['sent'] ?? 0,
-        'failed' => $job['failed'] ?? 0,
-        'suppressed' => $job['suppressed'] ?? 0,
-        'status' => $job['status'] ?? 'unknown',
-        'dry_run' => !empty($job['dry_run']),
-        'created_at' => $job['created_at'] ?? '',
-    ];
+    $jobs = [];
     foreach (glob(JOBS_DIR . '/*.json') as $file) {
         $job = json_decode(file_get_contents($file), true);
         if (!is_array($job) || ($job['owner'] ?? null) !== $username) {
@@ -263,6 +253,7 @@ function list_user_jobs(string $username): array {
             'total' => $job['total'] ?? 0,
             'sent' => $job['sent'] ?? 0,
             'failed' => $job['failed'] ?? 0,
+            'suppressed' => $job['suppressed'] ?? 0,
             'status' => $job['status'] ?? 'unknown',
             'dry_run' => !empty($job['dry_run']),
             'created_at' => $job['created_at'] ?? '',
