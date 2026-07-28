@@ -62,6 +62,41 @@ $username = current_username();
   .dl-link:hover { text-decoration: underline; }
   .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); }
 
+  /* Filters panel */
+  .filters-panel {
+    background: var(--panel); border-radius: 18px; box-shadow: 0 12px 40px rgba(11, 63, 140, 0.08);
+    padding: 22px 24px; margin-bottom: 18px;
+  }
+  .filters-row {
+    display: flex; gap: 14px; flex-wrap: wrap;
+  }
+  .filters-row > div {
+    flex: 1 1 160px; min-width: 140px;
+  }
+  .filters-row label {
+    display: block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px;
+  }
+  .filters-row input[type=text], .filters-row input[type=date], .filters-row select {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); background: #f7fafd;
+    color: var(--ink); font-family: inherit; font-size: 13px; border-radius: 9px;
+  }
+  .filters-row input:focus, .filters-row select:focus { outline: none; border-color: var(--accent); background: #fff; }
+  .filters-actions {
+    display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-block; padding: 10px 18px; background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: white; border: none; font-size: 12.5px; font-weight: 700; letter-spacing: 0.02em;
+    cursor: pointer; border-radius: 9px; transition: opacity 0.15s ease;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn.secondary {
+    background: transparent; color: var(--ink); border: 1.5px solid var(--line);
+  }
+  .btn.secondary:hover { border-color: var(--accent); color: var(--accent-dark); opacity: 1; }
+  .filters-hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
   /* Hamburger menu */
   .menu-wrap { position: relative; }
   .hamburger-btn {
@@ -104,6 +139,11 @@ $username = current_username();
     th, td { padding: 9px 10px; }
     .subject-cell { max-width: 200px; }
     .empty-state { padding: 40px 14px; font-size: 13px; }
+    .filters-panel { padding: 16px; border-radius: 14px; }
+    .filters-row { flex-direction: column; }
+    .filters-row > div { min-width: 0; }
+    .filters-actions { flex-direction: column-reverse; }
+    .filters-actions .btn { width: 100%; text-align: center; }
   }
 </style>
 </head>
@@ -135,12 +175,55 @@ $username = current_username();
   <h1>Campaign History</h1>
   <p class="subtitle">Every send you've started, whether it finished, and the results log for each — for <strong><?php echo htmlspecialchars($username); ?></strong>.</p>
 
+  <div class="filters-panel">
+    <div class="filters-row">
+      <div>
+        <label>Search subject</label>
+        <input type="text" id="filter-subject" placeholder="e.g. Quick question">
+      </div>
+      <div>
+        <label>Mode</label>
+        <select id="filter-mode">
+          <option value="">All</option>
+          <option value="dry">Dry run</option>
+          <option value="live">Live send</option>
+        </select>
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="filter-status">
+          <option value="">All</option>
+          <option value="done">Done</option>
+          <option value="stopped">Stopped</option>
+          <option value="sending">Sending</option>
+          <option value="queued">Queued</option>
+          <option value="error">Error</option>
+        </select>
+      </div>
+      <div>
+        <label>From date</label>
+        <input type="date" id="filter-from">
+      </div>
+      <div>
+        <label>To date</label>
+        <input type="date" id="filter-to">
+      </div>
+    </div>
+    <div class="filters-actions">
+      <button class="btn secondary" onclick="clearFilters()">Clear filters</button>
+      <button class="btn" onclick="downloadAll()">Download All (Word)</button>
+    </div>
+    <div class="filters-hint">"Download All" bundles the full results log of every campaign that matches the filters above into one Word (.docx) document.</div>
+  </div>
+
   <div class="panel">
     <div id="history-table-wrap"></div>
   </div>
 </div>
 
 <script>
+let allJobs = [];
+
 function escapeHtml(s) {
   const d = document.createElement('div');
   d.textContent = s;
@@ -161,6 +244,96 @@ function formatDate(iso) {
   return d.toLocaleString();
 }
 
+function applyFilters(jobs) {
+  const subject = document.getElementById('filter-subject').value.trim().toLowerCase();
+  const mode = document.getElementById('filter-mode').value;
+  const status = document.getElementById('filter-status').value;
+  const from = document.getElementById('filter-from').value;
+  const to = document.getElementById('filter-to').value;
+
+  return jobs.filter(job => {
+    if (subject && !(job.subject || '').toLowerCase().includes(subject)) return false;
+    if (mode === 'dry' && !job.dry_run) return false;
+    if (mode === 'live' && job.dry_run) return false;
+    if (status && job.status !== status) return false;
+    if (job.created_at) {
+      const day = job.created_at.slice(0, 10);
+      if (from && day < from) return false;
+      if (to && day > to) return false;
+    }
+    return true;
+  });
+}
+
+function renderJobs(jobs) {
+  const wrap = document.getElementById('history-table-wrap');
+  if (!allJobs.length) {
+    wrap.innerHTML = `<div class="empty-state">No campaigns sent yet — once you send (or dry-run) something from Dispatch, it'll show up here.</div>`;
+    return;
+  }
+  if (!jobs.length) {
+    wrap.innerHTML = `<div class="empty-state">No campaigns match these filters.</div>`;
+    return;
+  }
+  let html = `<table>
+    <tr>
+      <th>Date</th>
+      <th>Subject</th>
+      <th>Mode</th>
+      <th>Recipients</th>
+      <th>Sent</th>
+      <th>Failed</th>
+      <th>Suppressed</th>
+      <th>Status</th>
+      <th>Log</th>
+    </tr>`;
+  jobs.forEach(job => {
+    html += `<tr>
+      <td>${formatDate(job.created_at)}</td>
+      <td class="subject-cell">${escapeHtml(job.subject)}</td>
+      <td>${badgeFor(job)}</td>
+      <td>${job.total}</td>
+      <td>${job.sent}</td>
+      <td>${job.failed}</td>
+      <td>${job.suppressed || 0}</td>
+      <td><span class="badge ${job.status}">${escapeHtml(job.status)}</span></td>
+      <td><a class="dl-link" href="api/download_log.php?job_id=${encodeURIComponent(job.job_id)}">Download</a></td>
+    </tr>`;
+  });
+  html += '</table>';
+  wrap.innerHTML = html;
+}
+
+function refreshView() {
+  renderJobs(applyFilters(allJobs));
+}
+
+function clearFilters() {
+  document.getElementById('filter-subject').value = '';
+  document.getElementById('filter-mode').value = '';
+  document.getElementById('filter-status').value = '';
+  document.getElementById('filter-from').value = '';
+  document.getElementById('filter-to').value = '';
+  refreshView();
+}
+
+function downloadAll() {
+  const subject = document.getElementById('filter-subject').value.trim();
+  const mode = document.getElementById('filter-mode').value;
+  const status = document.getElementById('filter-status').value;
+  const from = document.getElementById('filter-from').value;
+  const to = document.getElementById('filter-to').value;
+
+  const params = new URLSearchParams();
+  if (subject) params.set('subject', subject);
+  if (mode) params.set('mode', mode);
+  if (status) params.set('status', status);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+
+  window.location.href = 'api/download_history.php?' + params.toString();
+}
+
 async function loadHistory() {
   const wrap = document.getElementById('history-table-wrap');
   try {
@@ -170,37 +343,14 @@ async function loadHistory() {
       wrap.innerHTML = `<div class="empty-state">Could not load history.</div>`;
       return;
     }
-    if (!data.jobs.length) {
-      wrap.innerHTML = `<div class="empty-state">No campaigns sent yet — once you send (or dry-run) something from Dispatch, it'll show up here.</div>`;
-      return;
-    }
-    let html = `<table>
-      <tr>
-        <th>Date</th>
-        <th>Subject</th>
-        <th>Mode</th>
-        <th>Recipients</th>
-        <th>Sent</th>
-        <th>Failed</th>
-        <th>Suppressed</th>
-        <th>Status</th>
-        <th>Log</th>
-      </tr>`;
-    data.jobs.forEach(job => {
-      html += `<tr>
-        <td>${formatDate(job.created_at)}</td>
-        <td class="subject-cell">${escapeHtml(job.subject)}</td>
-        <td>${badgeFor(job)}</td>
-        <td>${job.total}</td>
-        <td>${job.sent}</td>
-        <td>${job.failed}</td>
-        <td>${job.suppressed || 0}</td>
-        <td><span class="badge ${job.status}">${escapeHtml(job.status)}</span></td>
-        <td><a class="dl-link" href="api/download_log.php?job_id=${encodeURIComponent(job.job_id)}">Download</a></td>
-      </tr>`;
+    allJobs = data.jobs;
+    refreshView();
+
+    ['filter-subject', 'filter-mode', 'filter-status', 'filter-from', 'filter-to'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', refreshView);
+      el.addEventListener('change', refreshView);
     });
-    html += '</table>';
-    wrap.innerHTML = html;
   } catch (e) {
     wrap.innerHTML = `<div class="empty-state">Error loading history: ${escapeHtml(e.message)}</div>`;
   }
