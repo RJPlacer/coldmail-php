@@ -4,17 +4,28 @@ require_once __DIR__ . '/config.php';
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_csrf();
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    $users = load_users();
 
-    if (isset($users[$username]) && password_verify($password, $users[$username]['password_hash'])) {
+    if (login_is_rate_limited()) {
+        $error = 'Too many sign-in attempts. Please wait 15 minutes and try again.';
+        http_response_code(429);
+    } else {
+        $users = load_users();
+    }
+
+    $storedHash = $users[$username]['password_hash'] ?? null;
+    if (!$error && is_string($storedHash) && password_verify($password, $storedHash)) {
         // Regenerate session id on login to avoid session fixation.
         session_regenerate_id(true);
         $_SESSION['username'] = $username;
+        $_SESSION['_csrf'] = bin2hex(random_bytes(32));
+        clear_failed_logins();
         header('Location: index.php');
         exit;
-    } else {
+    } elseif (!$error) {
+        record_failed_login();
         $error = 'Incorrect username or password.';
         http_response_code(401);
     }
@@ -149,14 +160,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="sub">Sign in to send team email campaigns</div>
 
     <?php if ($error): ?>
-    <div class="error"><?php echo htmlspecialchars($error); ?></div>
+    <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
 
     <form method="POST" action="login.php">
-      <label>Username</label>
-      <input type="text" name="username" autocomplete="username" required autofocus>
-      <label>Password</label>
-      <input type="password" name="password" autocomplete="current-password" required>
+      <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
       <button type="submit">Sign In</button>
     </form>
 

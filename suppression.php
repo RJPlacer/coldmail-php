@@ -146,12 +146,27 @@ $username = current_username();
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
       <div class="menu-dropdown" id="menu-dropdown">
-        <a href="history.php" class="menu-item">History</a>
-        <a href="settings.php" class="menu-item">Settings</a>
-        <a href="suppression.php" class="menu-item active">Suppression List</a>
+        <a href="history.php" class="menu-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          History
+        </a>
+        <a href="settings.php" class="menu-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path></svg>
+          Settings
+        </a>
+        <a href="suppression.php" class="menu-item active">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          Suppression List
+        </a>
         <div class="menu-divider"></div>
         <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
-        <a href="logout.php" class="menu-item danger">Log out</a>
+        <form method="POST" action="logout.php" style="margin:0;">
+          <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+          <button type="submit" class="menu-item danger" style="width:100%;border:0;background:none;cursor:pointer;font:inherit;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Log out
+          </button>
+        </form>
       </div>
     </div>
   </header>
@@ -187,6 +202,16 @@ $username = current_username();
 </div>
 
 <script>
+const CSRF_TOKEN = <?php echo json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
+function apiFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if ((options.method || 'GET').toUpperCase() !== 'GET') {
+    headers.set('X-CSRF-Token', CSRF_TOKEN);
+  }
+  return window.fetch(url, {...options, headers});
+}
+
 function escapeHtml(s) {
   const d = document.createElement('div');
   d.textContent = s;
@@ -204,7 +229,7 @@ function showStatus(msg, isError) {
 async function refreshSuppressionList() {
   const wrap = document.getElementById('suppression-table-wrap');
   try {
-    const res = await fetch('api/list_suppressed.php');
+    const res = await apiFetch('api/list_suppressed.php');
     const data = await res.json();
     if (!res.ok) {
       wrap.innerHTML = `<div class="empty-state">Could not load suppression list.</div>`;
@@ -240,7 +265,7 @@ async function addSuppressedEmail() {
   const reason = reasonInput.value.trim();
   if (!email) { showStatus('Enter an email address first.', true); return; }
   try {
-    const res = await fetch('api/add_suppressed.php', {
+    const res = await apiFetch('api/add_suppressed.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({email, reason})
@@ -260,7 +285,7 @@ async function removeSuppressedEmail(encodedEmail) {
   const email = decodeURIComponent(encodedEmail);
   if (!confirm(`Remove ${email} from the suppression list? They'll be emailable again.`)) return;
   try {
-    const res = await fetch('api/remove_suppressed.php', {
+    const res = await apiFetch('api/remove_suppressed.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({email})

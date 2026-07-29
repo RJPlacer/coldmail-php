@@ -56,9 +56,9 @@ foreach (glob(JOBS_DIR . '/*.json') as $file) {
         'total'      => $job['total'] ?? 0,
         'sent'       => $job['sent'] ?? 0,
         'failed'     => $job['failed'] ?? 0,
-        // Matches list_history.php's formula exactly, so this number always
-        // agrees with what's shown in the History table for the same job.
-        'suppressed' => $job['suppressed'] ?? 0,
+        'suppressed' => (int)($job['skipped'] ?? 0)
+            + (int)($job['suppressed'] ?? 0)
+            + (int)($job['skipped_suppressed'] ?? 0),
         'results'    => $job['results'] ?? [],
     ];
 }

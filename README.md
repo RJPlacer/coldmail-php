@@ -17,6 +17,14 @@ Upload the whole `coldmail-php` folder to your hosting account (e.g. via Hosting
 
 **Make sure the `data/` folder is writable** by PHP (0755 or 0700 permissions) — it's where user accounts and in-progress jobs are stored.
 
+For production, set the `DISPATCH_BASE_URL` environment variable to the public application URL, without a trailing slash, so unsubscribe links always point to the correct host and folder:
+
+```text
+DISPATCH_BASE_URL=https://yourdomain.com/dispatch
+```
+
+If it is not set, Dispatch derives the URL from the incoming web request.
+
 ## 3. Add team logins
 
 You need shell/SSH access for this one-time step (Hostinger's hPanel has a "SSH Access" section, or use their browser-based terminal if offered):
@@ -54,16 +62,24 @@ After that, the main flow is 3 steps: **Recipients → Compose → Send.**
 - **Recipients** — paste CSV (header row required, must include an `email` column), or load a previously saved list from the dropdown. You can also save the current list under a name to reuse later — saved lists are private per team member.
 - **Compose** — write your subject/body using `{{column_name}}` merge tags pulled from your CSV. A required unsubscribe/footer line is included by default — edit but don't remove it. You can also save/reuse whole message templates the same way as recipient lists.
 - **Review & Send** — always run a **Dry Run** first to check personalization and merge tags render correctly, then switch to Live Send.
+- **Recipient audit** — validation removes duplicates and invalid addresses, always excludes suppressed recipients, and reports addresses contacted by an earlier campaign. Exclusions can be downloaded as CSV.
+- **Testing** — Settings can test SMTP authentication, while Compose can send a personalized test message to an address you choose.
+- **Unsubscribe protection** — every live message includes a signed unsubscribe link. Confirmed requests are added to the sender's suppression list and checked again immediately before each send.
+- **Draft recovery** — campaign fields are autosaved in the current browser for up to 30 days and cleared when a campaign starts.
+- **Interrupted campaigns** — if the browser is refreshed or closed mid-campaign, reopen Dispatch and use the **Resume campaign** notice. The saved delay and progress are restored.
+- **Live-send confirmation** — live campaigns show a final sender, recipient-count, subject, and delay confirmation before the first email is sent.
 
 ## Campaign history
 
 Click **History** in the header to see every campaign you've sent (or dry-run), with subject, date, recipient count, sent/failed counts, and a link to download that campaign's results log. This is private per team member and is built directly from the job files in `data/jobs/` — see the note in "Limits" below about what that means for cleanup.
 
+History includes subject search, status filters, pagination, campaign detail pages, CSV/JSON reports, retry-failures actions, and a Resume link for unfinished campaigns.
+
 ## Security notes specific to this PHP version
 
-- **Use HTTPS.** Hostinger includes free SSL — turn it on before anyone logs in or sends real SMTP passwords through this. Login/session cookies and SMTP credentials both travel over the wire on each request.
-- SMTP credentials are stored **only** in a temporary file per send job (`data/jobs/<id>.json`), deleted from active use once the job finishes — but the file itself isn't auto-deleted. If you want jobs cleaned up automatically, you can add a daily cron job on Hostinger to delete files in `data/jobs/` older than a day.
-- The `data/` folder must not be publicly browsable. Most hosts block direct access to files without an `index.php`, but double-check `data/users.json` isn't reachable directly by visiting its URL — if it loads in a browser, add a blank `data/.htaccess` with `Deny from all`, or ask hosting support to lock that folder down.
+- **Use HTTPS.** Hostinger includes free SSL — turn it on before anyone logs in or saves an SMTP password. Session cookies and settings submissions must be protected in transit.
+- SMTP credentials are stored once in the signed-in user's protected settings file. Campaign job/history files never contain the SMTP password.
+- The included `data/.htaccess` blocks direct access on Apache/LiteSpeed. Double-check that `data/users.json` is not reachable from a browser; on a non-Apache server, add an equivalent server rule or move `DATA_DIR` outside the public web root.
 
 ## Compliance — please read before sending
 
@@ -81,5 +97,15 @@ Placeholder contact email (`alfadevs.team@gmail.com`) and site link live in `ind
 ## Limits
 
 - Regular email provider sending limits still apply (Gmail ~500/day on personal accounts).
+- A campaign accepts at most 5,000 valid recipients and a recipient upload is limited to 5 MB.
 - No CRM/dedup — make sure you're not re-uploading a list you already emailed.
 - Job files in `data/jobs/` aren't automatically cleaned up — and now that **History** reads directly from them, deleting old job files means losing that campaign from your history too. If you send a lot and want to trim old ones, keep a reasonable retention window (e.g. a cron job that only deletes files older than 90 days) rather than clearing them frequently.
+
+## Development checks
+
+Run the built-in regression and JavaScript syntax checks before deploying changes:
+
+```bash
+php tests/run.php
+node tests/check-js.js
+```

@@ -10,6 +10,11 @@
 
 require_once __DIR__ . '/config.php';
 
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 function prompt_hidden(string $label): string {
     echo $label;
     // Try to hide input on unix-like systems; falls back to visible input on Windows CLI.
@@ -25,6 +30,10 @@ function prompt_hidden(string $label): string {
 }
 
 function cmd_add(string $username): void {
+    if (($error = validate_new_username($username)) !== null) {
+        echo $error . "\n";
+        return;
+    }
     $users = load_users();
     if (isset($users[$username])) {
         echo "User '$username' already exists. Remove first if you want to reset their password.\n";
@@ -36,12 +45,22 @@ function cmd_add(string $username): void {
         echo "Passwords did not match. Try again.\n";
         return;
     }
-    if (strlen($pw) < 6) {
-        echo "Password should be at least 6 characters.\n";
+    if (strlen($pw) < 10) {
+        echo "Password should be at least 10 characters.\n";
         return;
     }
-    $users[$username] = ['password_hash' => password_hash($pw, PASSWORD_DEFAULT)];
-    save_users($users);
+    $added = false;
+    update_users(function (array $currentUsers) use ($username, $pw, &$added): array {
+        if (!isset($currentUsers[$username])) {
+            $currentUsers[$username] = ['password_hash' => password_hash($pw, PASSWORD_DEFAULT)];
+            $added = true;
+        }
+        return $currentUsers;
+    });
+    if (!$added) {
+        echo "User '$username' was added by another process.\n";
+        return;
+    }
     echo "Added user '$username'.\n";
 }
 
@@ -51,8 +70,10 @@ function cmd_remove(string $username): void {
         echo "No such user '$username'.\n";
         return;
     }
-    unset($users[$username]);
-    save_users($users);
+    update_users(function (array $currentUsers) use ($username): array {
+        unset($currentUsers[$username]);
+        return $currentUsers;
+    });
     echo "Removed user '$username'.\n";
 }
 

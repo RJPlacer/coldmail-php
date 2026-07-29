@@ -4,12 +4,21 @@ data/jobs/*.json
 data/lists/*.json
 data/smtp/*.json
 data/templates/*.json
+data/suppressions/*.json
+data/login_attempts.json
+data/app_secret.key
+data/*.lock
+data/**/*.lock
+data/*.tmp.*
+data/**/*.tmp.*
+data/.storage_v2
 
 # Keep the folder structure tracked
 !data/jobs/.gitkeep
 !data/lists/.gitkeep
 !data/smtp/.gitkeep
 !data/templates/.gitkeep
+!data/suppressions/.gitkeep
 
 # OS
 .DS_Store

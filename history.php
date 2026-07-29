@@ -34,9 +34,16 @@ $username = current_username();
   header.top .divider { width: 1px; height: 22px; background: var(--line); }
   header.top .product-name { font-size: 18px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
   .back-link {
-    font-size: 13px; font-weight: 600; color: var(--accent-dark); text-decoration: none;
+    display:none; font-size: 13px; font-weight: 600; color: var(--accent-dark); text-decoration: none;
   }
   .back-link:hover { text-decoration: underline; }
+  .desktop-nav { display:flex; align-items:center; gap:6px; margin-left:auto; margin-right:14px; }
+  .desktop-nav a {
+    color:var(--muted); text-decoration:none; font-size:13px; font-weight:650;
+    padding:8px 10px; border-radius:8px;
+  }
+  .desktop-nav a:hover { background:#fff; color:var(--accent-dark); }
+  .desktop-nav a.active { color:var(--accent-dark); background:#fff; }
   h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 6px; }
   .subtitle { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
   .panel {
@@ -61,6 +68,21 @@ $username = current_username();
   .dl-link { color: var(--accent-dark); font-weight: 600; text-decoration: none; font-size: 12px; }
   .dl-link:hover { text-decoration: underline; }
   .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+  .history-toolbar { display:flex; gap:12px; margin-bottom:14px; }
+  .history-toolbar input, .history-toolbar select {
+    border:1.5px solid var(--line); border-radius:10px; padding:10px 12px;
+    background:#fff; color:var(--ink); font:inherit; font-size:13px;
+  }
+  .history-toolbar input { flex:1; min-width:0; }
+  .history-toolbar select { min-width:170px; }
+  .history-count { color:var(--muted); font-size:12px; margin:0 0 8px 2px; }
+  .history-pagination { display:flex; justify-content:flex-end; align-items:center; gap:10px; margin-top:14px; }
+  .history-pagination button {
+    border:1.5px solid var(--line); background:#fff; color:var(--accent-dark);
+    border-radius:8px; padding:8px 12px; font:inherit; font-size:12px; font-weight:700; cursor:pointer;
+  }
+  .history-pagination button:disabled { color:var(--muted); cursor:not-allowed; opacity:.6; }
+  .history-pagination span { color:var(--muted); font-size:12px; }
 
   /* Filters panel */
   .filters-panel {
@@ -134,7 +156,11 @@ $username = current_username();
     header.top .brand-lockup img { height: 24px; }
     header.top .product-name { font-size: 15px; }
     h1 { font-size: 20px; }
-    .panel { padding: 8px; border-radius: 14px; }
+    .panel { padding: 16px; border-radius: 14px; }
+    .desktop-nav { display:none; }
+    .back-link { display:inline-flex; }
+    .history-toolbar { flex-direction:column; }
+    .history-toolbar select { width:100%; }
     table { font-size: 12px; }
     th, td { padding: 9px 10px; }
     .subject-cell { max-width: 200px; }
@@ -156,18 +182,38 @@ $username = current_username();
       <div class="divider"></div>
       <div class="product-name">History</div>
     </div>
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      <a href="index.php">Dispatch</a>
+      <a href="history.php" class="active" aria-current="page">History</a>
+      <a href="settings.php">Settings</a>
+    </nav>
     <div class="right menu-wrap" style="gap:12px; display:flex; align-items:center;">
       <a href="index.php" class="back-link">← Back to Dispatch</a>
       <button class="hamburger-btn" id="menu-toggle" aria-label="Open menu" aria-expanded="false">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
       <div class="menu-dropdown" id="menu-dropdown">
-        <a href="settings.php" class="menu-item">Settings</a>
-        <a href="history.php" class="menu-item active">History</a>
-        <a href="suppression.php" class="menu-item">Suppression List</a>
+        <a href="history.php" class="menu-item active">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          History
+        </a>
+        <a href="settings.php" class="menu-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path></svg>
+          Settings
+        </a>
+        <a href="suppression.php" class="menu-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          Suppression List
+        </a>
         <div class="menu-divider"></div>
         <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
-        <a href="logout.php" class="menu-item danger">Log out</a>
+        <form method="POST" action="logout.php" style="margin:0;">
+          <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+          <button type="submit" class="menu-item danger" style="width:100%;border:0;background:none;cursor:pointer;font:inherit;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Log out
+          </button>
+        </form>
       </div>
     </div>
   </header>
@@ -217,8 +263,10 @@ $username = current_username();
   </div>
 
   <div class="panel">
-    <div id="history-table-wrap"></div>
+    <div id="history-table-wrap" aria-live="polite"><div class="empty-state">Loading campaign history…</div></div>
   </div>
+  <div class="history-count" id="history-count" aria-live="polite"></div>
+  <div class="history-pagination" id="history-pagination"></div>
 </div>
 
 <script>
@@ -226,15 +274,23 @@ let allJobs = [];
 
 function escapeHtml(s) {
   const d = document.createElement('div');
-  d.textContent = s;
+  d.textContent = String(s ?? '');
   return d.innerHTML;
 }
 
-function badgeFor(job) {
-  if (job.dry_run) return '<span class="badge dry">Dry run</span>';
+let historyPage = 1;
+const HISTORY_PAGE_SIZE = 20;
+
+function statusBadge(job) {
   const map = {done: 'done', stopped: 'stopped', sending: 'sending', error: 'error', queued: 'sending'};
   const cls = map[job.status] || 'dry';
   return `<span class="badge ${cls}">${escapeHtml(job.status)}</span>`;
+}
+
+function modeBadge(job) {
+  return job.dry_run
+    ? '<span class="badge dry">Dry run</span>'
+    : '<span class="badge sending">Live</span>';
 }
 
 function formatDate(iso) {
@@ -267,14 +323,30 @@ function applyFilters(jobs) {
 
 function renderJobs(jobs) {
   const wrap = document.getElementById('history-table-wrap');
+  const count = document.getElementById('history-count');
+  const pagination = document.getElementById('history-pagination');
   if (!allJobs.length) {
     wrap.innerHTML = `<div class="empty-state">No campaigns sent yet — once you send (or dry-run) something from Dispatch, it'll show up here.</div>`;
+    count.textContent = '';
+    pagination.innerHTML = '';
     return;
   }
   if (!jobs.length) {
     wrap.innerHTML = `<div class="empty-state">No campaigns match these filters.</div>`;
+    count.textContent = `0 of ${allJobs.length} campaigns`;
+    pagination.innerHTML = '';
     return;
   }
+  const totalPages = Math.max(1, Math.ceil(jobs.length / HISTORY_PAGE_SIZE));
+  historyPage = Math.min(historyPage, totalPages);
+  const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
+  const pageJobs = jobs.slice(start, start + HISTORY_PAGE_SIZE);
+  count.textContent = `Showing ${start + 1}–${start + pageJobs.length} of ${jobs.length} matching campaign${jobs.length === 1 ? '' : 's'}`;
+  pagination.innerHTML = jobs.length > HISTORY_PAGE_SIZE
+    ? `<button type="button" onclick="changeHistoryPage(-1)" ${historyPage === 1 ? 'disabled' : ''}>Previous</button>
+       <span>Page ${historyPage} of ${totalPages}</span>
+       <button type="button" onclick="changeHistoryPage(1)" ${historyPage === totalPages ? 'disabled' : ''}>Next</button>`
+    : '';
   let html = `<table>
     <tr>
       <th>Date</th>
@@ -285,19 +357,19 @@ function renderJobs(jobs) {
       <th>Failed</th>
       <th>Suppressed</th>
       <th>Status</th>
-      <th>Log</th>
+      <th>Actions</th>
     </tr>`;
-  jobs.forEach(job => {
+  pageJobs.forEach(job => {
     html += `<tr>
-      <td>${formatDate(job.created_at)}</td>
+      <td>${escapeHtml(formatDate(job.created_at))}</td>
       <td class="subject-cell">${escapeHtml(job.subject)}</td>
-      <td>${badgeFor(job)}</td>
+      <td>${modeBadge(job)}</td>
       <td>${job.total}</td>
       <td>${job.sent}</td>
       <td>${job.failed}</td>
-      <td>${job.suppressed || 0}</td>
-      <td><span class="badge ${job.status}">${escapeHtml(job.status)}</span></td>
-      <td><a class="dl-link" href="api/download_log.php?job_id=${encodeURIComponent(job.job_id)}">Download</a></td>
+      <td>${job.skipped || 0}</td>
+      <td>${statusBadge(job)}</td>
+      <td>${['queued', 'sending'].includes(job.status) ? '<a class="dl-link" href="index.php">Resume</a> · ' : ''}<a class="dl-link" href="campaign.php?job_id=${encodeURIComponent(job.job_id)}">View</a></td>
     </tr>`;
   });
   html += '</table>';
@@ -308,12 +380,19 @@ function refreshView() {
   renderJobs(applyFilters(allJobs));
 }
 
+function changeHistoryPage(direction) {
+  historyPage += direction;
+  refreshView();
+  document.querySelector('.filters-panel').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
 function clearFilters() {
   document.getElementById('filter-subject').value = '';
   document.getElementById('filter-mode').value = '';
   document.getElementById('filter-status').value = '';
   document.getElementById('filter-from').value = '';
   document.getElementById('filter-to').value = '';
+  historyPage = 1;
   refreshView();
 }
 
@@ -348,8 +427,12 @@ async function loadHistory() {
 
     ['filter-subject', 'filter-mode', 'filter-status', 'filter-from', 'filter-to'].forEach(id => {
       const el = document.getElementById(id);
-      el.addEventListener('input', refreshView);
-      el.addEventListener('change', refreshView);
+      const handleFilter = () => {
+        historyPage = 1;
+        refreshView();
+      };
+      el.addEventListener('input', handleFilter);
+      el.addEventListener('change', handleFilter);
     });
   } catch (e) {
     wrap.innerHTML = `<div class="empty-state">Error loading history: ${escapeHtml(e.message)}</div>`;

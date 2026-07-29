@@ -3,7 +3,7 @@ require_once __DIR__ . '/../config.php';
 require_login(true);
 
 $input = json_input();
-$name = trim($input['name'] ?? '');
+$name = trim(input_string($input, 'name'));
 
 $lists = load_recipient_lists(current_username());
 

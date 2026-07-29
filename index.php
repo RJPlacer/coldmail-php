@@ -114,6 +114,7 @@ $username = current_username();
     font-weight: 600;
     letter-spacing: 0.02em;
     transition: all 0.15s ease;
+    font-family: inherit;
   }
   .steps-nav .step.active {
     background: linear-gradient(135deg, var(--accent), var(--accent-dark));
@@ -125,6 +126,7 @@ $username = current_username();
     color: var(--accent-dark);
     border-color: #b9d9f8;
   }
+  .steps-nav .step.done::before { content: "✓ "; font-weight: 800; }
   .panel {
     background: var(--panel);
     border-radius: 18px;
@@ -242,6 +244,7 @@ $username = current_username();
   .stat .lbl { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.06em; margin-top: 4px; }
   .stat.sent .num { color: var(--accent-dark); }
   .stat.failed .num { color: var(--warn); }
+  .stat.skipped .num { color: #a15c00; }
   .progress-bar { height: 10px; background: var(--line); border-radius: 6px; overflow: hidden; margin: 16px 0; }
   .progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dark)); width: 0%; transition: width 0.3s ease; }
   .feed {
@@ -252,12 +255,34 @@ $username = current_username();
   .feed .line.sent { color: var(--accent-dark); }
   .feed .line.failed { color: var(--warn); }
   .feed .line.dry-run-ok { color: var(--muted); }
-  .feed .line.suppressed { color: var(--muted); font-style: italic; }
+  .feed .line.suppressed { color: #a15c00; }
   .preview-box { border: 1.5px solid var(--line); border-radius: 12px; padding: 16px; background: var(--paper); margin-top: 12px; font-size: 14px; line-height: 1.6; }
   .preview-box .ps { font-weight: 700; margin-bottom: 8px; }
   #error-banner {
     display: none; background: linear-gradient(135deg, #e15b5b, var(--warn)); color: white;
     border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px;
+  }
+  .field-error { color: var(--warn); font-size: 12px; margin-top: 6px; }
+  .field-invalid { border-color: var(--warn) !important; background: #fff8f8 !important; }
+  .resume-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .resume-actions .btn { padding: 9px 16px; }
+  .desktop-nav { display: flex; align-items: center; gap: 6px; margin-left: auto; margin-right: 12px; }
+  .desktop-nav a {
+    color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 650;
+    padding: 8px 10px; border-radius: 8px;
+  }
+  .desktop-nav a:hover, .desktop-nav a:focus-visible { background: #fff; color: var(--accent-dark); }
+  .audit-summary { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+  .audit-chip { background:#fff; border:1px solid var(--line); border-radius:999px; padding:5px 10px; font-size:11px; color:var(--muted); }
+  .audit-chip.warn { color:var(--warn); border-color:#f2caca; }
+  .check-row { display:flex; align-items:flex-start; gap:9px; margin-top:14px; color:var(--muted); font-size:12px; line-height:1.5; }
+  .check-row input { margin-top:3px; }
+  .preview-controls { display:flex; gap:8px; align-items:center; margin-top:10px; }
+  .preview-controls .btn { padding:8px 12px; }
+  #draft-status { color:var(--muted); font-size:11px; margin-top:-20px; margin-bottom:20px; min-height:16px; }
+  button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 3px solid rgba(30,127,224,0.28);
+    outline-offset: 2px;
   }
   footer.app-footer {
     margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--line);
@@ -315,6 +340,8 @@ $username = current_username();
   @media (max-width: 720px) {
     .saved-manager .sm-row { flex-direction: column; align-items: stretch; }
     .saved-manager .sm-actions .btn { flex: 1; }
+    .desktop-nav { display: none; }
+    .resume-actions { flex-direction: column; }
   }
 
   .app-footer-v2 { margin-top: 36px; padding: 28px 24px; border-top: 1px solid var(--line); text-align: center; }
@@ -407,6 +434,9 @@ $username = current_username();
     .steps-nav .step { font-size: 9.5px; padding: 8px 3px; }
     .stat .num { font-size: 17px; }
   }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+  }
 </style>
 </head>
 <body>
@@ -418,6 +448,10 @@ $username = current_username();
       <div class="divider"></div>
       <div class="product-name">Dispatch</div>
     </div>
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      <a href="history.php">History</a>
+      <a href="settings.php">Settings</a>
+    </nav>
     <div class="menu-wrap">
       <button class="hamburger-btn" id="menu-toggle" aria-label="Open menu" aria-expanded="false">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
@@ -437,24 +471,37 @@ $username = current_username();
         </a>
         <div class="menu-divider"></div>
         <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
-        <a href="logout.php" class="menu-item danger">
+        <form method="POST" action="logout.php" style="margin:0;">
+          <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+          <button type="submit" class="menu-item danger" style="width:100%;border:0;background:none;cursor:pointer;font:inherit;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
           Log out
-        </a>
+          </button>
+        </form>
       </div>
     </div>
   </header>
   <p class="subtitle">Runs on your own server. SMTP credentials are saved once in Settings, not re-entered every time.</p>
+  <div id="draft-status" role="status" aria-live="polite"></div>
 
-  <div id="error-banner"></div>
+  <div id="error-banner" role="alert" aria-live="assertive"></div>
   <div id="no-smtp-banner" class="notice warn" style="display:none;">
     No SMTP settings saved yet. <a href="settings.php" style="color:inherit; font-weight:700;">Set them up in Settings</a> before sending.
   </div>
+  <div id="resume-banner" class="notice" style="display:none;" aria-live="polite">
+    <strong>Unfinished campaign found</strong>
+    <div id="resume-description"></div>
+    <div class="resume-actions">
+      <button type="button" class="btn" id="resume-btn" onclick="resumeActiveJob()">Resume campaign</button>
+      <button type="button" class="btn secondary" id="dismiss-resume-btn" onclick="dismissActiveJob()">Dismiss</button>
+      <button type="button" class="btn danger" id="stop-active-btn" onclick="stopActiveJob()">Stop campaign</button>
+    </div>
+  </div>
 
-  <div class="steps-nav">
-    <div class="step active" data-step="2">1 · Recipients</div>
-    <div class="step" data-step="3">2 · Compose</div>
-    <div class="step" data-step="4">3 · Send</div>
+  <div class="steps-nav" aria-label="Campaign steps">
+    <button type="button" class="step active" data-step="2" aria-current="step">1 · Recipients</button>
+    <button type="button" class="step" data-step="3">2 · Compose</button>
+    <button type="button" class="step" data-step="4">3 · Send</button>
   </div>
 
   <!-- STEP 2: Recipients -->
@@ -520,13 +567,18 @@ $username = current_username();
 
     <div style="text-align:center; margin:16px 0; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:0.06em;">— or paste it directly —</div>
 
-    <label>CSV Data</label>
-    <textarea id="raw_recipients" rows="10" placeholder="email,first_name,company
+    <label for="raw_recipients">CSV Data</label>
+    <textarea id="raw_recipients" rows="10" aria-describedby="raw-recipients-hint" placeholder="email,first_name,company
 jane@acme.com,Jane,Acme Inc
 bob@widgets.com,Bob,Widgets Co"></textarea>
-    <div class="hint">Tip: export contacts from Sheets/Excel as CSV, then paste the full contents here.</div>
+    <div class="hint" id="raw-recipients-hint">Tip: export contacts from Sheets/Excel as CSV, then paste the full contents here.</div>
+    <label class="check-row" for="exclude_previously_contacted">
+      <input type="checkbox" id="exclude_previously_contacted">
+      Exclude addresses that already received an earlier live campaign. Previously contacted addresses are always reported, even when this is unchecked.
+    </label>
 
     <button class="btn secondary" style="margin-top:16px" onclick="parseRecipients()">Validate list</button>
+    <button class="btn secondary" id="download-exclusions-btn" style="margin-top:16px;display:none;" onclick="downloadExclusions()">Download excluded addresses</button>
 
     <div id="recipients-summary"></div>
 
@@ -574,10 +626,10 @@ bob@widgets.com,Bob,Widgets Co"></textarea>
       </div>
     </div>
 
-    <label>Subject line</label>
+    <label for="subject">Subject line</label>
     <input type="text" id="subject" placeholder="Quick question, {{first_name}}">
 
-    <label>Body</label>
+    <label for="body">Body</label>
     <textarea id="body" rows="10" placeholder="Hi {{first_name}},
 
 I noticed {{company}} is...
@@ -586,17 +638,17 @@ Best,
 Jane"></textarea>
     <div class="hint">Use {{column_name}} to insert any column from your recipient list.</div>
 
-    <label>Unsubscribe / footer line <span style="text-transform:none;font-weight:400">(required for compliance — every commercial email needs a way to opt out)</span></label>
+    <label for="unsubscribe_line">Unsubscribe / footer line <span style="text-transform:none;font-weight:400">(required for compliance — every commercial email needs a way to opt out)</span></label>
     <textarea id="unsubscribe_line" rows="2">You're receiving this because we thought it'd be relevant. Reply "unsubscribe" and I'll remove you immediately. — Sent from {{smtp_user}}</textarea>
 
     <div class="row">
       <div>
-        <label>Delay between sends (seconds)</label>
-        <input type="number" id="delay_seconds" value="5" min="0">
+        <label for="delay_seconds">Delay between sends (seconds)</label>
+        <input type="number" id="delay_seconds" value="5" min="0" max="3600">
         <div class="hint">Higher delays reduce the chance of being flagged as spam. 3–10s is reasonable for personal SMTP accounts.</div>
       </div>
       <div>
-        <label>Mode</label>
+        <label for="dry_run">Mode</label>
         <select id="dry_run">
           <option value="true">Dry run (no emails actually sent)</option>
           <option value="false">Live send</option>
@@ -604,8 +656,24 @@ Jane"></textarea>
       </div>
     </div>
 
-    <button class="btn secondary" style="margin-top:16px" onclick="showPreview()">Preview first email</button>
+    <button class="btn secondary" style="margin-top:16px" onclick="showPreview()">Preview personalized email</button>
+    <div class="preview-controls" id="preview-controls" style="display:none;">
+      <button class="btn secondary" type="button" onclick="changePreview(-1)">Previous</button>
+      <span id="preview-position" class="hint"></span>
+      <button class="btn secondary" type="button" onclick="changePreview(1)">Next</button>
+    </div>
     <div id="preview-output"></div>
+
+    <div class="row" style="margin-top:18px;align-items:flex-end;">
+      <div>
+        <label for="test_email">Test recipient</label>
+        <input type="text" id="test_email" placeholder="you@example.com">
+      </div>
+      <div>
+        <button class="btn secondary" id="send-test-btn" onclick="sendTestEmail()">Send test email</button>
+      </div>
+    </div>
+    <div id="test-email-status" class="hint" role="status" aria-live="polite"></div>
 
     <div class="btn-row">
       <button class="btn secondary" onclick="goStep(2)">← Back</button>
@@ -628,19 +696,22 @@ Jane"></textarea>
       <button class="btn" id="send-btn" onclick="startSend()">Start Sending</button>
     </div>
 
-    <div id="send-progress" style="display:none; margin-top:24px;">
+    <div id="send-progress" style="display:none; margin-top:24px;" aria-live="polite">
       <div class="stat-grid">
         <div class="stat"><div class="num" id="stat-total">0</div><div class="lbl">Total</div></div>
         <div class="stat sent"><div class="num" id="stat-sent">0</div><div class="lbl">Sent</div></div>
         <div class="stat failed"><div class="num" id="stat-failed">0</div><div class="lbl">Failed</div></div>
-        <div class="stat"><div class="num" id="stat-suppressed">0</div><div class="lbl">Suppressed</div></div>
+        <div class="stat skipped"><div class="num" id="stat-skipped">0</div><div class="lbl">Suppressed</div></div>
       </div>
       <div class="progress-bar"><div class="fill" id="progress-fill"></div></div>
-      <div id="status-text" style="font-family:var(--mono); font-size:12px; color:var(--muted); margin-bottom:10px;"></div>
-      <div class="feed" id="feed"></div>
+      <div id="status-text" role="status" style="font-family:var(--mono); font-size:12px; color:var(--muted); margin-bottom:10px;"></div>
+      <div class="feed" id="feed" role="log" aria-live="polite"></div>
       <div class="btn-row">
         <button class="btn danger" id="stop-btn" onclick="stopSend()">Stop Sending</button>
-        <button class="btn secondary" id="download-btn" onclick="downloadLog()" style="display:none">Download Log</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn secondary" id="new-campaign-btn" onclick="resetCampaign()" style="display:none">Start another campaign</button>
+          <button class="btn secondary" id="download-btn" onclick="downloadLog()" style="display:none">Download Log</button>
+        </div>
       </div>
     </div>
   </div>
@@ -676,10 +747,25 @@ Jane"></textarea>
 </div>
 
 <script>
+const CSRF_TOKEN = <?php echo json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+function apiFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if ((options.method || 'GET').toUpperCase() !== 'GET') {
+    headers.set('X-CSRF-Token', CSRF_TOKEN);
+  }
+  return window.fetch(url, {...options, headers});
+}
 let parsedCount = 0;
 let currentJobId = null;
 let sendLoopActive = false;
 let stoppedByUser = false;
+let activeJob = null;
+let errorTimer = null;
+let recipientPreviewRows = [];
+let recipientExclusions = [];
+let previewIndex = 0;
+const DRAFT_KEY = 'dispatchDraft:v2:<?php echo hash('sha256', $username); ?>';
+let draftTimer = null;
 
 function toggleSavedManager(bodyId, headerEl) {
   const body = document.getElementById(bodyId);
@@ -693,16 +779,48 @@ function showError(msg) {
   const banner = document.getElementById('error-banner');
   banner.textContent = msg;
   banner.style.display = 'block';
-  setTimeout(() => banner.style.display = 'none', 6000);
+  clearTimeout(errorTimer);
+  errorTimer = setTimeout(() => banner.style.display = 'none', 8000);
+  banner.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+function setFieldError(fieldId, message) {
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  field.classList.add('field-invalid');
+  field.setAttribute('aria-invalid', 'true');
+  let error = document.getElementById(fieldId + '-error');
+  if (!error) {
+    error = document.createElement('div');
+    error.id = fieldId + '-error';
+    error.className = 'field-error';
+    error.setAttribute('role', 'alert');
+    field.insertAdjacentElement('afterend', error);
+  }
+  error.textContent = message;
+  field.setAttribute('aria-describedby', [field.getAttribute('aria-describedby'), error.id].filter(Boolean).join(' '));
+}
+
+function clearFieldError(fieldId) {
+  const field = document.getElementById(fieldId);
+  const error = document.getElementById(fieldId + '-error');
+  if (field) {
+    field.classList.remove('field-invalid');
+    field.removeAttribute('aria-invalid');
+  }
+  if (error) error.remove();
 }
 
 let smtpConfig = null; // loaded from Settings
 
 async function loadSmtpConfig() {
   try {
-    const res = await fetch('api/get_smtp_settings.php');
+    const res = await apiFetch('api/get_smtp_settings.php');
     const data = await res.json();
     smtpConfig = data.settings || null;
+    if (smtpConfig && !document.getElementById('test_email').value) {
+      document.getElementById('test_email').value = smtpConfig.smtp_user || '';
+    }
   } catch (e) {
     smtpConfig = null;
   }
@@ -711,14 +829,56 @@ async function loadSmtpConfig() {
 loadSmtpConfig();
 refreshSavedLists();
 refreshSavedTemplates();
+checkForActiveJob();
 
-function goStep(n) {
+function validateForStep(n) {
+  if (n >= 3 && parsedCount < 1) {
+    setFieldError('raw_recipients', 'Validate a recipient list before continuing.');
+    showError('Please validate at least one recipient before continuing.');
+    document.getElementById('raw_recipients').focus();
+    return false;
+  }
+  if (n >= 4) {
+    const required = [
+      ['subject', 'Enter a subject line.'],
+      ['body', 'Enter the message body.'],
+      ['unsubscribe_line', 'Add an unsubscribe or contact footer.'],
+    ];
+    let firstInvalid = null;
+    required.forEach(([id, message]) => {
+      if (!document.getElementById(id).value.trim()) {
+        setFieldError(id, message);
+        firstInvalid ??= id;
+      } else {
+        clearFieldError(id);
+      }
+    });
+    const delay = Number(document.getElementById('delay_seconds').value);
+    if (!Number.isFinite(delay) || delay < 0 || delay > 3600) {
+      setFieldError('delay_seconds', 'Use a delay between 0 and 3,600 seconds.');
+      firstInvalid ??= 'delay_seconds';
+    } else {
+      clearFieldError('delay_seconds');
+    }
+    if (firstInvalid) {
+      showError('Please complete the highlighted campaign fields.');
+      document.getElementById(firstInvalid).focus();
+      return false;
+    }
+  }
+  return true;
+}
+
+function goStep(n, skipValidation = false) {
+  if (!skipValidation && !validateForStep(n)) return;
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + n).classList.add('active');
   document.querySelectorAll('.steps-nav .step').forEach(s => {
     const step = parseInt(s.dataset.step);
     s.classList.toggle('active', step === n);
     s.classList.toggle('done', step < n);
+    if (step === n) s.setAttribute('aria-current', 'step');
+    else s.removeAttribute('aria-current');
   });
   if (n === 4) buildReview();
   if (n === 2) { refreshSavedLists(); }
@@ -728,7 +888,7 @@ function goStep(n) {
 
 async function refreshSavedLists() {
   try {
-    const res = await fetch('api/list_recipient_lists.php');
+    const res = await apiFetch('api/list_recipient_lists.php');
     const data = await res.json();
     if (!res.ok) return;
     const select = document.getElementById('saved-lists-select');
@@ -748,7 +908,7 @@ async function loadSavedList() {
     return;
   }
   try {
-    const res = await fetch('api/load_recipient_list.php', {
+    const res = await apiFetch('api/load_recipient_list.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name})
@@ -773,7 +933,7 @@ async function saveCurrentList() {
     return;
   }
   try {
-    const res = await fetch('api/save_recipient_list.php', {
+    const res = await apiFetch('api/save_recipient_list.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name, raw_text: rawText})
@@ -799,7 +959,7 @@ async function deleteSavedList() {
   }
   if (!confirm(`Delete saved list "${name}"? This can't be undone.`)) return;
   try {
-    const res = await fetch('api/delete_recipient_list.php', {
+    const res = await apiFetch('api/delete_recipient_list.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name})
@@ -817,7 +977,7 @@ async function deleteSavedList() {
 
 async function refreshSavedTemplates() {
   try {
-    const res = await fetch('api/list_templates.php');
+    const res = await apiFetch('api/list_templates.php');
     const data = await res.json();
     if (!res.ok) return;
     const select = document.getElementById('saved-templates-select');
@@ -837,7 +997,7 @@ async function loadSavedTemplate() {
     return;
   }
   try {
-    const res = await fetch('api/load_template.php', {
+    const res = await apiFetch('api/load_template.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name})
@@ -870,7 +1030,7 @@ async function saveCurrentTemplate() {
     unsubscribe_line: document.getElementById('unsubscribe_line').value,
   };
   try {
-    const res = await fetch('api/save_template.php', {
+    const res = await apiFetch('api/save_template.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(config)
@@ -896,7 +1056,7 @@ async function deleteSavedTemplate() {
   }
   if (!confirm(`Delete saved template "${name}"? This can't be undone.`)) return;
   try {
-    const res = await fetch('api/delete_template.php', {
+    const res = await apiFetch('api/delete_template.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name})
@@ -951,51 +1111,154 @@ async function handleFileUpload(e) {
 
 async function parseRecipients() {
   const raw = document.getElementById('raw_recipients').value;
+  const excludePreviously = document.getElementById('exclude_previously_contacted').checked;
   try {
-    const res = await fetch('api/parse_recipients.php', {
+    const res = await apiFetch('api/parse_recipients.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({raw_text: raw})
+      body: JSON.stringify({raw_text: raw, exclude_previously_contacted: excludePreviously})
     });
     const data = await res.json();
-    if (!res.ok) {
-      showError(data.error || 'Could not parse recipients.');
-      document.getElementById('to-step-3').disabled = true;
+    if (document.getElementById('raw_recipients').value !== raw
+        || document.getElementById('exclude_previously_contacted').checked !== excludePreviously) {
       return;
     }
-    parsedCount = data.count;
-    let html = `<div class="notice">Found <strong>${data.count}</strong> valid recipients. Columns: ${data.fieldnames.join(', ')}</div>`;
-    if (data.suppressed_count > 0) {
-      html += `<div class="notice warn">${data.suppressed_count} of these are on the suppression list and will be skipped automatically when you send.</div>`;
+    if (!res.ok) {
+      showError(data.error || 'Could not parse recipients.');
+      setFieldError('raw_recipients', data.error || 'Could not validate this recipient list.');
+      parsedCount = 0;
+      recipientPreviewRows = [];
+      recipientExclusions = [];
+      document.getElementById('to-step-3').disabled = true;
+      document.getElementById('download-exclusions-btn').style.display = 'none';
+      return;
     }
-    html += '<div class="table-scroll"><table class="preview"><tr>' + data.fieldnames.map(f => `<th>${f}</th>`).join('') + '</tr>';
+    clearFieldError('raw_recipients');
+    parsedCount = data.count;
+    recipientPreviewRows = data.preview || [];
+    recipientExclusions = data.exclusions || [];
+    previewIndex = 0;
+    const excludedTotal = Number(data.invalid_count || 0) + Number(data.duplicate_count || 0)
+      + Number(data.suppressed_count || 0)
+      + (excludePreviously ? Number(data.previously_contacted_count || 0) : 0);
+    let html = `<div class="notice">Ready to send to <strong>${Number(data.count)}</strong> recipients. Columns: ${data.fieldnames.map(escapeHtml).join(', ')}</div>`;
+    html += `<div class="audit-summary">
+      <span class="audit-chip">${Number(data.invalid_count || 0)} invalid</span>
+      <span class="audit-chip">${Number(data.duplicate_count || 0)} duplicates</span>
+      <span class="audit-chip warn">${Number(data.suppressed_count || 0)} suppressed</span>
+      <span class="audit-chip">${Number(data.previously_contacted_count || 0)} previously contacted</span>
+    </div>`;
+    if (excludedTotal) {
+      html += `<div class="hint">${excludedTotal} address${excludedTotal === 1 ? '' : 'es'} excluded from this campaign.</div>`;
+    }
+    html += '<div class="table-scroll"><table class="preview"><tr>' + data.fieldnames.map(f => `<th>${escapeHtml(f)}</th>`).join('') + '</tr>';
     data.preview.forEach(row => {
-      html += '<tr>' + data.fieldnames.map(f => `<td>${(row[f]||'')}</td>`).join('') + '</tr>';
+      html += '<tr>' + data.fieldnames.map(f => `<td>${escapeHtml(row[f] || '')}</td>`).join('') + '</tr>';
     });
     html += '</table></div>';
     document.getElementById('recipients-summary').innerHTML = html;
     document.getElementById('to-step-3').disabled = data.count === 0;
+    document.getElementById('download-exclusions-btn').style.display = recipientExclusions.length ? 'inline-block' : 'none';
   } catch (e) {
     showError('Error contacting server: ' + e.message);
   }
 }
 
+function renderClientMerge(template, row) {
+  let result = template;
+  Object.entries(row || {}).forEach(([key, value]) => {
+    result = result.split(`{{${key}}}`).join(String(value));
+    result = result.split(`{{ ${key} }}`).join(String(value));
+  });
+  return result;
+}
+
 function showPreview() {
-  const subject = document.getElementById('subject').value;
-  const body = document.getElementById('body').value;
+  const row = recipientPreviewRows[previewIndex] || {};
+  const subject = renderClientMerge(document.getElementById('subject').value, row);
+  const body = renderClientMerge(document.getElementById('body').value, row);
+  const footer = renderClientMerge(document.getElementById('unsubscribe_line').value, {
+    smtp_user: smtpConfig?.smtp_user || '',
+    from_name: smtpConfig?.from_name || '',
+    ...row,
+  });
   document.getElementById('preview-output').innerHTML = `
     <div class="preview-box">
       <div class="ps">Subject: ${escapeHtml(subject) || '(empty)'}</div>
       <div>${escapeHtml(body).replace(/\\n/g, '<br>') || '(empty)'}</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0;">
+      <div class="hint">${escapeHtml(footer).replace(/\\n/g, '<br>')}</div>
     </div>
-    <div class="hint">This shows the raw template. Merge tags like {{first_name}} will be filled in per-recipient when sent.</div>
+    <div class="hint">${recipientPreviewRows.length ? `Personalized for ${escapeHtml(row.email || 'preview recipient')}.` : 'Validate a recipient list to preview merge-tag personalization.'}</div>
   `;
+  document.getElementById('preview-controls').style.display = recipientPreviewRows.length > 1 ? 'flex' : 'none';
+  document.getElementById('preview-position').textContent = recipientPreviewRows.length
+    ? `${previewIndex + 1} of ${recipientPreviewRows.length} preview recipients`
+    : '';
+}
+
+function changePreview(direction) {
+  if (!recipientPreviewRows.length) return;
+  previewIndex = (previewIndex + direction + recipientPreviewRows.length) % recipientPreviewRows.length;
+  showPreview();
 }
 
 function escapeHtml(s) {
   const d = document.createElement('div');
-  d.textContent = s;
+  d.textContent = String(s ?? '');
   return d.innerHTML;
+}
+
+function downloadExclusions() {
+  if (!recipientExclusions.length) return;
+  const csvCell = value => {
+    let text = String(value ?? '');
+    if (/^[=+\-@]/.test(text)) text = "'" + text;
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+  const csv = ['email,reason', ...recipientExclusions.map(item =>
+    `${csvCell(item.email)},${csvCell(item.reason)}`
+  )].join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'dispatch_excluded_addresses.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function sendTestEmail() {
+  const button = document.getElementById('send-test-btn');
+  const status = document.getElementById('test-email-status');
+  const subject = document.getElementById('subject').value;
+  const body = document.getElementById('body').value;
+  if (!subject.trim() || !body.trim()) {
+    showError('Add a subject and message body before sending a test.');
+    return;
+  }
+  button.disabled = true;
+  status.textContent = 'Sending test email…';
+  try {
+    const res = await apiFetch('api/send_test_email.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        subject,
+        body,
+        unsubscribe_line: document.getElementById('unsubscribe_line').value,
+        raw_recipients: document.getElementById('raw_recipients').value,
+        test_email: document.getElementById('test_email').value,
+      })
+    });
+    const data = await res.json();
+    status.textContent = res.ok ? data.message : (data.error || 'Test email failed.');
+    status.style.color = res.ok ? '#1a7a4c' : 'var(--warn)';
+  } catch (e) {
+    status.textContent = 'Test email failed: ' + e.message;
+    status.style.color = 'var(--warn)';
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function buildReview() {
@@ -1009,7 +1272,7 @@ function buildReview() {
       <tr><th>SMTP host</th><td>${escapeHtml(host)}</td></tr>
       <tr><th>Sending as</th><td>${escapeHtml(user)}</td></tr>
       <tr><th>Recipients</th><td>${parsedCount}</td></tr>
-      <tr><th>Delay between sends</th><td>${delay}s</td></tr>
+      <tr><th>Delay between sends</th><td>${escapeHtml(delay)}s</td></tr>
       <tr><th>Mode</th><td>${dryRun ? 'DRY RUN (no emails sent)' : 'LIVE SEND'}</td></tr>
     </table>
     </div>
@@ -1022,6 +1285,7 @@ function buildReview() {
     warning.style.display = 'none';
   }
   document.getElementById('send-btn').disabled = !smtpConfig;
+  document.getElementById('send-btn').textContent = dryRun ? 'Run Dry Test' : 'Start Live Send';
 }
 
 async function startSend() {
@@ -1029,25 +1293,32 @@ async function startSend() {
     showError('No SMTP settings saved yet — set them up in Settings first.');
     return;
   }
+  if (!validateForStep(4)) return;
+  if (activeJob) {
+    showError('Resume, stop, or dismiss the unfinished campaign before starting another one.');
+    return;
+  }
   const config = {
-    smtp_host: smtpConfig.smtp_host,
-    smtp_port: smtpConfig.smtp_port,
-    smtp_user: smtpConfig.smtp_user,
-    smtp_pass: smtpConfig.smtp_pass,
-    use_ssl: !!smtpConfig.use_ssl,
-    from_name: smtpConfig.from_name,
     subject: document.getElementById('subject').value,
     body: document.getElementById('body').value,
     unsubscribe_line: document.getElementById('unsubscribe_line').value,
     delay_seconds: document.getElementById('delay_seconds').value,
     dry_run: document.getElementById('dry_run').value === 'true',
+    exclude_previously_contacted: document.getElementById('exclude_previously_contacted').checked,
     raw_recipients: document.getElementById('raw_recipients').value,
   };
+
+  if (!config.dry_run) {
+    const confirmed = window.confirm(
+      `Confirm live send\n\nFrom: ${smtpConfig.smtp_user}\nRecipients: ${parsedCount}\nSubject: ${config.subject}\nDelay: ${config.delay_seconds}s\n\nStart sending real emails now?`
+    );
+    if (!confirmed) return;
+  }
 
   document.getElementById('send-btn').disabled = true;
 
   try {
-    const res = await fetch('api/start_job.php', {
+    const res = await apiFetch('api/start_job.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(config)
@@ -1059,14 +1330,18 @@ async function startSend() {
       return;
     }
     currentJobId = data.job_id;
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+      document.getElementById('draft-status').textContent = 'Draft moved into the active campaign.';
+    } catch (e) {}
     stoppedByUser = false;
     document.getElementById('send-progress').style.display = 'block';
     document.getElementById('stat-total').textContent = data.total;
-    document.getElementById('stat-suppressed').textContent = data.skipped_suppressed || 0;
-    document.getElementById('send-progress').style.display = 'block';
-    document.getElementById('stat-total').textContent = data.total;
+    document.getElementById('stat-skipped').textContent = data.excluded || 0;
     document.getElementById('stop-btn').style.display = 'inline-block';
     document.getElementById('download-btn').style.display = 'none';
+    document.getElementById('new-campaign-btn').style.display = 'none';
+    document.getElementById('send-btn').style.display = 'none';
     sendLoopActive = true;
     const delayMs = Math.max(0, parseFloat(config.delay_seconds || 0)) * 1000;
     sendNextLoop(delayMs);
@@ -1079,7 +1354,7 @@ async function startSend() {
 async function sendNextLoop(delayMs) {
   if (!sendLoopActive || !currentJobId) return;
   try {
-    const res = await fetch('api/send_next.php', {
+    const res = await apiFetch('api/send_next.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({job_id: currentJobId})
@@ -1096,6 +1371,8 @@ async function sendNextLoop(delayMs) {
       sendLoopActive = false;
       document.getElementById('stop-btn').style.display = 'none';
       document.getElementById('download-btn').style.display = 'inline-block';
+      document.getElementById('new-campaign-btn').style.display = 'inline-block';
+      sessionStorage.removeItem('dismissedActiveJob');
       if (data.status === 'error') showError('Send job error: ' + data.error);
       return;
     }
@@ -1108,35 +1385,203 @@ async function sendNextLoop(delayMs) {
 }
 
 function renderProgress(data) {
-  document.getElementById('stat-suppressed').textContent = data.suppressed || 0;
   document.getElementById('stat-sent').textContent = data.sent;
   document.getElementById('stat-failed').textContent = data.failed;
+  document.getElementById('stat-skipped').textContent = data.skipped || 0;
   const pct = data.total ? Math.round((data.progress / data.total) * 100) : 0;
   document.getElementById('progress-fill').style.width = pct + '%';
   document.getElementById('status-text').textContent = `Status: ${data.status} — ${data.progress}/${data.total}`;
 
   const feed = document.getElementById('feed');
-  feed.innerHTML = data.results.slice().reverse().map(r =>
+  feed.innerHTML = data.results.slice().reverse().map(result => {
+    const allowedStatuses = new Set(['sent', 'failed', 'dry-run-ok', 'suppressed']);
+    const r = {
+      ...result,
+      status: allowedStatuses.has(result.status) ? result.status : 'failed',
+      email: escapeHtml(result.email),
+    };
+    return (
     `<div class="line ${r.status}">[${r.status}] ${r.email} — ${escapeHtml(r.subject)}${r.error ? ' — ' + escapeHtml(r.error) : ''}</div>`
-  ).join('');
+    );
+  }).join('');
 }
 
 async function stopSend() {
   if (!currentJobId) return;
-  stoppedByUser = true;
-  await fetch('api/stop_job.php', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({job_id: currentJobId})
-  });
-  sendLoopActive = false;
-  document.getElementById('stop-btn').style.display = 'none';
-  document.getElementById('download-btn').style.display = 'inline-block';
+  try {
+    const res = await apiFetch('api/stop_job.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({job_id: currentJobId})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Could not stop the campaign.');
+      return;
+    }
+    stoppedByUser = true;
+    sendLoopActive = false;
+    activeJob = null;
+    sessionStorage.removeItem('dismissedActiveJob');
+    document.getElementById('status-text').textContent = 'Campaign stopped.';
+    document.getElementById('stop-btn').style.display = 'none';
+    document.getElementById('download-btn').style.display = 'inline-block';
+    document.getElementById('new-campaign-btn').style.display = 'inline-block';
+  } catch (e) {
+    showError('Could not stop the campaign: ' + e.message);
+  }
 }
+
+async function checkForActiveJob() {
+  try {
+    const res = await apiFetch('api/list_active_jobs.php');
+    const data = await res.json();
+    if (!res.ok || !data.jobs.length) return;
+    const candidate = data.jobs[0];
+    if (sessionStorage.getItem('dismissedActiveJob') === candidate.job_id) return;
+    activeJob = candidate;
+    document.getElementById('resume-description').textContent =
+      `${candidate.subject || '(no subject)'} — ${candidate.progress}/${candidate.total} processed${candidate.dry_run ? ' (dry run)' : ''}.`;
+    document.getElementById('resume-banner').style.display = 'block';
+  } catch (e) {
+    // Campaign recovery is helpful but should not block the main workflow.
+  }
+}
+
+function dismissActiveJob() {
+  if (activeJob) sessionStorage.setItem('dismissedActiveJob', activeJob.job_id);
+  activeJob = null;
+  document.getElementById('resume-banner').style.display = 'none';
+}
+
+function resumeActiveJob() {
+  if (!activeJob || sendLoopActive) return;
+  currentJobId = activeJob.job_id;
+  parsedCount = activeJob.total;
+  stoppedByUser = false;
+  goStep(4, true);
+  document.getElementById('resume-banner').style.display = 'none';
+  document.getElementById('send-progress').style.display = 'block';
+  document.getElementById('send-btn').style.display = 'none';
+  document.getElementById('stop-btn').style.display = 'inline-block';
+  document.getElementById('download-btn').style.display = 'none';
+  document.getElementById('new-campaign-btn').style.display = 'none';
+  document.getElementById('stat-total').textContent = activeJob.total;
+  renderProgress(activeJob);
+  sendLoopActive = true;
+  sendNextLoop(Math.max(0, Number(activeJob.delay_seconds || 5)) * 1000);
+}
+
+async function stopActiveJob() {
+  if (!activeJob) return;
+  try {
+    const res = await apiFetch('api/stop_job.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({job_id: activeJob.job_id})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showError(data.error || 'Could not stop the campaign.');
+      return;
+    }
+    sessionStorage.removeItem('dismissedActiveJob');
+    activeJob = null;
+    document.getElementById('resume-banner').style.display = 'none';
+  } catch (e) {
+    showError('Could not stop the campaign: ' + e.message);
+  }
+}
+
+['subject', 'body', 'unsubscribe_line', 'delay_seconds'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', () => clearFieldError(id));
+});
+document.getElementById('raw_recipients').addEventListener('input', () => {
+  clearFieldError('raw_recipients');
+  parsedCount = 0;
+  recipientPreviewRows = [];
+  recipientExclusions = [];
+  previewIndex = 0;
+  document.getElementById('to-step-3').disabled = true;
+  document.getElementById('recipients-summary').innerHTML = '';
+  document.getElementById('download-exclusions-btn').style.display = 'none';
+  document.getElementById('preview-controls').style.display = 'none';
+});
+
+function draftPayload() {
+  return {
+    raw_recipients: document.getElementById('raw_recipients').value,
+    subject: document.getElementById('subject').value,
+    body: document.getElementById('body').value,
+    unsubscribe_line: document.getElementById('unsubscribe_line').value,
+    delay_seconds: document.getElementById('delay_seconds').value,
+    dry_run: document.getElementById('dry_run').value,
+    exclude_previously_contacted: document.getElementById('exclude_previously_contacted').checked,
+    saved_at: new Date().toISOString(),
+  };
+}
+
+function scheduleDraftSave() {
+  clearTimeout(draftTimer);
+  document.getElementById('draft-status').textContent = 'Saving draft…';
+  draftTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draftPayload()));
+      document.getElementById('draft-status').textContent = 'Draft saved locally in this browser.';
+    } catch (e) {
+      document.getElementById('draft-status').textContent = 'Draft could not be saved in this browser.';
+    }
+  }, 500);
+}
+
+function restoreDraft() {
+  try {
+    const rawDraft = localStorage.getItem(DRAFT_KEY);
+    if (!rawDraft) return;
+    const draft = JSON.parse(rawDraft);
+    const savedAt = new Date(draft.saved_at || 0);
+    if (!Number.isFinite(savedAt.getTime()) || savedAt < new Date(Date.now() - 30 * 86400000)) {
+      localStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    ['raw_recipients', 'subject', 'body', 'unsubscribe_line', 'delay_seconds', 'dry_run'].forEach(id => {
+      if (typeof draft[id] === 'string') document.getElementById(id).value = draft[id];
+    });
+    document.getElementById('exclude_previously_contacted').checked = !!draft.exclude_previously_contacted;
+    document.getElementById('draft-status').textContent = 'Draft restored from this browser. Validate the recipient list to continue.';
+  } catch (e) {
+    localStorage.removeItem(DRAFT_KEY);
+  }
+}
+
+restoreDraft();
+['raw_recipients', 'subject', 'body', 'unsubscribe_line', 'delay_seconds', 'dry_run', 'exclude_previously_contacted'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', scheduleDraftSave);
+  document.getElementById(id)?.addEventListener('change', scheduleDraftSave);
+});
+document.getElementById('exclude_previously_contacted').addEventListener('change', () => {
+  parsedCount = 0;
+  document.getElementById('to-step-3').disabled = true;
+  if (document.getElementById('raw_recipients').value.trim()) parseRecipients();
+});
 
 function downloadLog() {
   if (!currentJobId) return;
   window.location.href = 'api/download_log.php?job_id=' + currentJobId;
+}
+
+function resetCampaign() {
+  if (sendLoopActive) return;
+  currentJobId = null;
+  activeJob = null;
+  stoppedByUser = false;
+  document.getElementById('send-progress').style.display = 'none';
+  document.getElementById('send-btn').style.display = 'inline-block';
+  document.getElementById('new-campaign-btn').style.display = 'none';
+  document.getElementById('download-btn').style.display = 'none';
+  document.getElementById('feed').innerHTML = '';
+  document.getElementById('progress-fill').style.width = '0%';
+  goStep(2, true);
 }
 
 (function () {

@@ -4,17 +4,21 @@ require_login(true);
 
 $input = json_input();
 
+$existing = load_smtp_settings(current_username()) ?? [];
+$submittedPassword = input_string($input, 'smtp_pass');
 $settings = [
-    'smtp_host' => trim($input['smtp_host'] ?? ''),
-    'smtp_port' => (int)($input['smtp_port'] ?? 587),
+    'smtp_host' => trim(input_string($input, 'smtp_host')),
+    'smtp_port' => (int)input_string($input, 'smtp_port', '587'),
     'use_ssl' => !empty($input['use_ssl']),
-    'smtp_user' => trim($input['smtp_user'] ?? ''),
-    'smtp_pass' => $input['smtp_pass'] ?? '',
-    'from_name' => trim($input['from_name'] ?? ''),
+    'smtp_user' => trim(input_string($input, 'smtp_user')),
+    'smtp_pass' => $submittedPassword !== ''
+        ? $submittedPassword
+        : (string)($existing['smtp_pass'] ?? ''),
+    'from_name' => trim(input_string($input, 'from_name')),
 ];
 
-if ($settings['smtp_host'] === '' || $settings['smtp_user'] === '' || $settings['smtp_pass'] === '') {
-    json_response(['error' => 'Host, email address, and app password are all required.'], 400);
+if (($validationError = validate_smtp_settings($settings)) !== null) {
+    json_response(['error' => $validationError], 400);
 }
 
 save_smtp_settings(current_username(), $settings);

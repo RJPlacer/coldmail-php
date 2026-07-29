@@ -36,9 +36,27 @@ $username = current_username();
   header.top .right { display: flex; align-items: center; gap: 14px; }
   .back-link {
     font-size: 13px; font-weight: 600; color: var(--accent-dark); text-decoration: none;
-    display: inline-flex; align-items: center; gap: 6px;
+    display: none; align-items: center; gap: 6px;
   }
   .back-link:hover { text-decoration: underline; }
+  .desktop-nav { display:flex; align-items:center; gap:6px; margin-left:auto; margin-right:14px; }
+  .desktop-nav a {
+    color:var(--muted); text-decoration:none; font-size:13px; font-weight:650;
+    padding:8px 10px; border-radius:8px;
+  }
+  .desktop-nav a:hover { background:#fff; color:var(--accent-dark); }
+  .desktop-nav a.active { color:var(--accent-dark); background:#fff; }
+  .credential-status { min-height:18px; margin-top:6px; font-size:12px; color:#1a7a4c; }
+  .settings-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:24px; }
+  .btn.secondary { background:#fff; color:var(--accent-dark); border:1.5px solid var(--line); }
+  .suppression-row { display:flex; gap:10px; margin-bottom:16px; }
+  .suppression-row input { flex:1; }
+  .suppression-list { border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .suppression-item { display:grid; grid-template-columns:minmax(0,1fr) 130px 90px; gap:10px; align-items:center;
+    padding:10px 12px; border-bottom:1px solid var(--line); font-size:12px; }
+  .suppression-item:last-child { border-bottom:0; }
+  .suppression-item .email { overflow:hidden; text-overflow:ellipsis; }
+  .suppression-item button { border:0; background:transparent; color:var(--warn); cursor:pointer; font-weight:700; }
   h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 6px; }
   .subtitle { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
   .panel {
@@ -111,7 +129,12 @@ $username = current_username();
     header.top .brand-lockup img { height: 24px; }
     header.top .product-name { font-size: 15px; }
     h1 { font-size: 20px; }
-    .panel { padding: 8px; border-radius: 14px; }
+    .panel { padding: 16px; border-radius: 14px; }
+    .desktop-nav { display:none; }
+    .back-link { display:inline-flex; }
+    .suppression-row { flex-direction:column; }
+    .suppression-item { grid-template-columns:minmax(0,1fr) 80px; }
+    .suppression-item .reason { display:none; }
     table { font-size: 12px; }
     th, td { padding: 9px 10px; }
     .subject-cell { max-width: 200px; }
@@ -128,18 +151,38 @@ $username = current_username();
       <div class="divider"></div>
       <div class="product-name">Settings</div>
     </div>
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      <a href="index.php">Dispatch</a>
+      <a href="history.php">History</a>
+      <a href="settings.php" class="active" aria-current="page">Settings</a>
+    </nav>
     <div class="right menu-wrap" style="gap:12px; display:flex; align-items:center;">
       <a href="index.php" class="back-link">← Back to Dispatch</a>
       <button class="hamburger-btn" id="menu-toggle" aria-label="Open menu" aria-expanded="false">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
       <div class="menu-dropdown" id="menu-dropdown">
-        <a href="settings.php" class="menu-item active">Settings</a>
-        <a href="history.php" class="menu-item">History</a>
-        <a href="suppression.php" class="menu-item">Suppression List</a>
+        <a href="history.php" class="menu-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          History
+        </a>
+        <a href="settings.php" class="menu-item active">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path></svg>
+          Settings
+        </a>
+        <a href="suppression.php" class="menu-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          Suppression List
+        </a>
         <div class="menu-divider"></div>
         <div class="menu-user">Signed in as <strong><?php echo htmlspecialchars($username); ?></strong></div>
-        <a href="logout.php" class="menu-item danger">Log out</a>
+        <form method="POST" action="logout.php" style="margin:0;">
+          <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+          <button type="submit" class="menu-item danger" style="width:100%;border:0;background:none;cursor:pointer;font:inherit;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Log out
+          </button>
+        </form>
       </div>
     </div>
   </header>
@@ -155,7 +198,7 @@ $username = current_username();
 
     <div class="row">
       <div>
-        <label>Provider preset</label>
+        <label for="preset">Provider preset</label>
         <select id="preset">
           <option value="custom">Custom</option>
           <option value="gmail">Gmail (smtp.gmail.com)</option>
@@ -163,37 +206,65 @@ $username = current_username();
         </select>
       </div>
       <div>
-        <label>SMTP Host</label>
+        <label for="smtp_host">SMTP Host</label>
         <input type="text" id="smtp_host" placeholder="smtp.gmail.com">
       </div>
     </div>
     <div class="row">
       <div>
-        <label>Port</label>
+        <label for="smtp_port">Port</label>
         <input type="number" id="smtp_port" value="587">
       </div>
       <div>
-        <label>Encryption</label>
+        <label for="use_ssl">Encryption</label>
         <select id="use_ssl">
           <option value="false">STARTTLS (587)</option>
           <option value="true">SSL (465)</option>
         </select>
       </div>
     </div>
-    <label>Email address (username)</label>
+    <label for="smtp_user">Email address (username)</label>
     <input type="text" id="smtp_user" placeholder="you@example.com">
-    <label>App Password</label>
-    <input type="password" id="smtp_pass" placeholder="16-character app password">
-    <label>From Name</label>
+    <label for="smtp_pass">App Password</label>
+    <input type="password" id="smtp_pass" placeholder="Leave blank to keep the saved password" autocomplete="new-password" aria-describedby="password-status">
+    <div class="credential-status" id="password-status" role="status" aria-live="polite"></div>
+    <label for="from_name">From Name</label>
     <input type="text" id="from_name" placeholder="Jane Doe">
     <div class="hint">Use your real name, not a team/brand name — this makes a big difference for avoiding spam filters.</div>
 
-    <button class="btn" style="margin-top:24px" onclick="saveSettings()">Save Settings</button>
-    <div id="save-status"></div>
+    <div class="settings-actions">
+      <button class="btn" onclick="saveSettings()">Save Settings</button>
+      <button class="btn secondary" id="test-smtp-btn" onclick="testSmtp()">Test SMTP Connection</button>
+    </div>
+    <div id="save-status" role="status" aria-live="polite"></div>
+  </div>
+
+  <h2 style="margin-top:28px;">Suppression List</h2>
+  <p class="subtitle">Addresses here are automatically excluded from every future campaign. Confirmed unsubscribe links are added automatically.</p>
+  <div class="panel">
+    <div class="suppression-row">
+      <input type="text" id="suppression-email" placeholder="person@example.com" aria-label="Email address to suppress">
+      <button class="btn secondary" onclick="addSuppression()">Suppress address</button>
+    </div>
+    <div id="suppression-status" class="credential-status" role="status" aria-live="polite"></div>
+    <div id="suppression-list" class="suppression-list"><div class="hint" style="padding:16px;">Loading suppressed addresses…</div></div>
   </div>
 </div>
 
 <script>
+const CSRF_TOKEN = <?php echo json_encode(csrf_token(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+function apiFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if ((options.method || 'GET').toUpperCase() !== 'GET') {
+    headers.set('X-CSRF-Token', CSRF_TOKEN);
+  }
+  return window.fetch(url, {...options, headers});
+}
+function escapeHtml(value) {
+  const element = document.createElement('div');
+  element.textContent = String(value ?? '');
+  return element.innerHTML;
+}
 document.getElementById('preset').addEventListener('change', (e) => {
   const v = e.target.value;
   if (v === 'gmail') {
@@ -209,7 +280,7 @@ document.getElementById('preset').addEventListener('change', (e) => {
 
 async function loadSettings() {
   try {
-    const res = await fetch('api/get_smtp_settings.php');
+    const res = await apiFetch('api/get_smtp_settings.php');
     const data = await res.json();
     if (data.settings) {
       document.getElementById('smtp_host').value = data.settings.smtp_host || '';
@@ -226,8 +297,9 @@ async function loadSettings() {
       document.getElementById('smtp_port').value = data.settings.smtp_port || 587;
       document.getElementById('use_ssl').value = data.settings.use_ssl ? 'true' : 'false';
       document.getElementById('smtp_user').value = data.settings.smtp_user || '';
-      document.getElementById('smtp_pass').value = data.settings.smtp_pass || '';
       document.getElementById('from_name').value = data.settings.from_name || '';
+      document.getElementById('password-status').textContent =
+        data.settings.has_password ? 'App password is saved on the server and is not returned to this page.' : '';
     }
   } catch (e) {
     // no saved settings yet — leave fields blank
@@ -245,7 +317,7 @@ async function saveSettings() {
   };
   const statusEl = document.getElementById('save-status');
   try {
-    const res = await fetch('api/save_smtp_settings.php', {
+    const res = await apiFetch('api/save_smtp_settings.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(config)
@@ -258,13 +330,102 @@ async function saveSettings() {
     }
     statusEl.className = 'ok';
     statusEl.textContent = 'Settings saved. You can head back to Dispatch now.';
+    document.getElementById('smtp_pass').value = '';
+    document.getElementById('password-status').textContent = 'App password is saved on the server and is not returned to this page.';
   } catch (e) {
     statusEl.className = 'error';
     statusEl.textContent = 'Error contacting server: ' + e.message;
   }
 }
 
+async function testSmtp() {
+  const button = document.getElementById('test-smtp-btn');
+  const statusEl = document.getElementById('save-status');
+  button.disabled = true;
+  statusEl.className = '';
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Testing SMTP connection…';
+  try {
+    const res = await apiFetch('api/test_smtp.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    statusEl.className = res.ok ? 'ok' : 'error';
+    statusEl.textContent = res.ok ? data.message : (data.error || 'SMTP test failed.');
+  } catch (e) {
+    statusEl.className = 'error';
+    statusEl.textContent = 'SMTP test failed: ' + e.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function loadSuppressions() {
+  const list = document.getElementById('suppression-list');
+  try {
+    const res = await apiFetch('api/list_suppressions.php');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not load suppressions.');
+    if (!data.suppressions.length) {
+      list.innerHTML = '<div class="hint" style="padding:16px;">No suppressed addresses yet.</div>';
+      return;
+    }
+    list.innerHTML = data.suppressions.map(item => `
+      <div class="suppression-item">
+        <div class="email" title="${escapeHtml(item.email)}">${escapeHtml(item.email)}</div>
+        <div class="reason">${escapeHtml(item.reason || 'manual')}</div>
+        <button type="button" class="remove-suppression" data-email="${escapeHtml(item.email)}">Remove</button>
+      </div>`).join('');
+    list.querySelectorAll('.remove-suppression').forEach(button => {
+      button.addEventListener('click', () => removeSuppression(button.dataset.email));
+    });
+  } catch (e) {
+    list.innerHTML = `<div class="hint" style="padding:16px;color:var(--warn);">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function addSuppression() {
+  const input = document.getElementById('suppression-email');
+  const status = document.getElementById('suppression-status');
+  const email = input.value.trim();
+  try {
+    const res = await apiFetch('api/add_suppression.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email})
+    });
+    const data = await res.json();
+    status.textContent = res.ok ? `${email} will be excluded from future campaigns.` : (data.error || 'Could not suppress address.');
+    if (res.ok) {
+      input.value = '';
+      loadSuppressions();
+    }
+  } catch (e) {
+    status.textContent = 'Could not suppress address: ' + e.message;
+  }
+}
+
+async function removeSuppression(email) {
+  if (!confirm(`Allow ${email} to receive future campaigns again?`)) return;
+  const status = document.getElementById('suppression-status');
+  try {
+    const res = await apiFetch('api/remove_suppression.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email})
+    });
+    const data = await res.json();
+    status.textContent = res.ok ? `${email} was removed from the suppression list.` : (data.error || 'Could not remove address.');
+    if (res.ok) loadSuppressions();
+  } catch (e) {
+    status.textContent = 'Could not remove address: ' + e.message;
+  }
+}
+
 loadSettings();
+loadSuppressions();
 
 (function () {
   const btn = document.getElementById('menu-toggle');
